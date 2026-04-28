@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roster-system"
+version = "0.1.0"
+description = "Enterprise-grade rostering backend service"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn>=0.30.0,<1.0.0",
+  "sqlalchemy>=2.0.0,<3.0.0",
+  "pydantic>=2.8.0,<3.0.0",
+  "pydantic-settings>=2.4.0,<3.0.0",
+  "openpyxl>=3.1.5,<4.0.0",
+  "python-multipart>=0.0.9,<1.0.0",
+  "PyJWT>=2.9.0,<3.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.3,<10.0.0",
+  "httpx>=0.27.0,<1.0.0",
+  "alembic>=1.14.0,<2.0.0"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
