@@ -45,6 +45,26 @@ function alertType(msg) {
   return 'info'
 }
 
+function isValidTimeValue(value) {
+  return typeof value === 'string' && value.length === 5 && value.includes(':')
+}
+
+function hasValidRequirements(requirements) {
+  if (!Array.isArray(requirements) || requirements.length === 0) return false
+  return requirements.every((row) => {
+    const hc = Number(row.required_headcount)
+    return (
+      (row.product_type === 'APO' || row.product_type === 'AVSO') &&
+      Number.isFinite(hc) &&
+      hc > 0 &&
+      isValidTimeValue(row.reporting_from) &&
+      isValidTimeValue(row.reporting_to) &&
+      isValidTimeValue(row.next_shift_from) &&
+      isValidTimeValue(row.next_shift_to)
+    )
+  })
+}
+
 export default function DeploymentPlanningPage() {
   const [status, setStatus] = useState('Loading deployment sites...')
   const [sites, setSites] = useState([])
@@ -123,6 +143,10 @@ export default function DeploymentPlanningPage() {
         return
       }
     }
+    if (!hasValidRequirements(requirements)) {
+      setStatus('Complete Product Requirements first (product, headcount, and all shift times).')
+      return
+    }
 
     const payload = {
       site_name: siteName.trim(),
@@ -153,6 +177,13 @@ export default function DeploymentPlanningPage() {
     }
   }
 
+  const canCreateSite =
+    siteName.trim().length > 0 &&
+    hasValidRequirements(requirements) &&
+    (mode === 'RECURRING'
+      ? days.length > 0
+      : adhocStart.length > 0 && adhocEnd.length > 0 && adhocEnd > adhocStart)
+
   return (
     <>
       <section className="panel">
@@ -164,7 +195,6 @@ export default function DeploymentPlanningPage() {
               onChange={(e) => setSiteName(e.target.value)}
               style={{ minWidth: 240 }}
             />
-            <button type="submit">Create Site</button>
           </div>
 
           <div className="toolbar-row">
@@ -265,6 +295,12 @@ export default function DeploymentPlanningPage() {
                 + Add Product Row
               </button>
             </div>
+          </div>
+
+          <div className="toolbar-row">
+            <button type="submit" disabled={!canCreateSite} title={!canCreateSite ? 'Complete Product Requirements first' : ''}>
+              Create Site (After Requirements)
+            </button>
           </div>
         </form>
 
