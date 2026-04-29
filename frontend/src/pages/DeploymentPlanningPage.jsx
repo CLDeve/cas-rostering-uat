@@ -5,12 +5,12 @@ const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
 function defaultRequirement() {
   return {
-    product_type: 'APO',
-    required_headcount: 1,
-    reporting_from: '08:00',
-    reporting_to: '16:00',
-    next_shift_from: '16:00',
-    next_shift_to: '00:00',
+    product_type: '',
+    required_headcount: '',
+    reporting_from: '',
+    reporting_to: '',
+    next_shift_from: '',
+    next_shift_to: '',
   }
 }
 
@@ -253,12 +253,14 @@ export default function DeploymentPlanningPage() {
                   value={row.product_type}
                   onChange={(e) => updateRequirement(index, 'product_type', e.target.value)}
                 >
+                  <option value="">Select Product *</option>
                   <option value="APO">APO</option>
                   <option value="AVSO">AVSO</option>
                 </select>
                 <input
                   type="number"
                   min="1"
+                  placeholder="Headcount *"
                   title="Headcount"
                   value={row.required_headcount}
                   onChange={(e) => updateRequirement(index, 'required_headcount', e.target.value)}
