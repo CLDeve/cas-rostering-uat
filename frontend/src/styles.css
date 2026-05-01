@@ -361,14 +361,14 @@ body {
 }
 .nav-group:hover .nav-icon { opacity: 1; }
 .nav-group .nav-text::after {
-  content: '▸';
-  margin-left: 8px;
+  content: '';
+  margin-left: 0;
   font-size: 10px;
   color: var(--sidebar-text-muted);
   vertical-align: middle;
 }
 .nav-group.expanded .nav-text::after {
-  content: '▾';
+  content: '';
 }
 
 /* Sidebar Footer */
