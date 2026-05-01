@@ -18,6 +18,7 @@ from roster_system.web.routes import router as web_router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings.validate_production_safety()
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     yield
 

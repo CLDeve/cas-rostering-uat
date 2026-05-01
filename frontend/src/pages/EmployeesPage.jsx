@@ -14,11 +14,11 @@ const defaultForm = {
   staff_id: '',
   name: '',
   start_date: '',
-  gender: 'UNKNOWN',
+  gender: '',
   cert: '',
-  scheme: 'A',
-  shift_pattern: '5W1O',
-  contractual_hours: '264',
+  scheme: '',
+  shift_patterns: [],
+  contractual_hours: '',
 }
 
 function alertType(msg) {
@@ -37,6 +37,18 @@ export default function EmployeesPage() {
   const [selectedFile, setSelectedFile] = useState(null)
   const [hasLatestUpload, setHasLatestUpload] = useState(false)
   const [form, setForm] = useState(defaultForm)
+
+  function toggleShiftPattern(pattern) {
+    setForm((prev) => {
+      const selected = prev.shift_patterns.includes(pattern)
+      return {
+        ...prev,
+        shift_patterns: selected
+          ? prev.shift_patterns.filter((value) => value !== pattern)
+          : [...prev.shift_patterns, pattern],
+      }
+    })
+  }
 
   async function refreshEmployees() {
     try {
@@ -96,7 +108,7 @@ export default function EmployeesPage() {
 
   async function onCreateOfficer(event) {
     event.preventDefault()
-    if (!form.team || !form.rank || !form.staff_id || !form.name || !form.scheme || !form.contractual_hours) {
+    if (!form.team || !form.rank || !form.staff_id || !form.name || !form.gender || !form.scheme || form.shift_patterns.length === 0 || !form.contractual_hours) {
       setStatus('Please fill all required officer fields.')
       return
     }
@@ -110,7 +122,8 @@ export default function EmployeesPage() {
       gender: form.gender,
       cert: form.cert.trim() || null,
       scheme: form.scheme.trim(),
-      shift_pattern: form.shift_pattern,
+      shift_pattern: form.shift_patterns[0],
+      shift_patterns: form.shift_patterns,
       contractual_hours: String(form.contractual_hours),
       forecast_hours: '0',
     }
@@ -119,7 +132,11 @@ export default function EmployeesPage() {
     try {
       await createEmployee(payload)
       setForm(defaultForm)
-      setStatus('Officer created successfully.')
+      setStatus(
+        form.shift_patterns.length > 1
+          ? 'Officer created. Primary shift pattern saved as first selected value due to current API model.'
+          : 'Officer created successfully.',
+      )
       await refreshEmployees()
     } catch (err) {
       setStatus(`Create officer failed: ${err.message}`)
@@ -147,7 +164,7 @@ export default function EmployeesPage() {
         <td>{row.gender}</td>
         <td>{row.cert || '—'}</td>
         <td>{row.scheme}</td>
-        <td>{row.shift_pattern}</td>
+        <td>{Array.isArray(row.shift_patterns) && row.shift_patterns.length ? row.shift_patterns.join(', ') : row.shift_pattern}</td>
         <td>{row.contractual_hours}</td>
       </tr>
     ))
@@ -189,7 +206,7 @@ export default function EmployeesPage() {
       </section>
 
       <section className="panel">
-        <h2>Create Officer (Inline)</h2>
+        <h2>Create Officer</h2>
         <form className="form-grid officer-grid" onSubmit={onCreateOfficer}>
           <input
             placeholder="TEAM *"
@@ -213,7 +230,9 @@ export default function EmployeesPage() {
           />
           <input
             type="date"
-            title="Start Date"
+            title="Roster Start Date"
+            aria-label="Roster Start Date"
+            placeholder="Roster Start Date"
             value={form.start_date}
             onChange={(e) => setForm((v) => ({ ...v, start_date: e.target.value }))}
           />
@@ -221,28 +240,42 @@ export default function EmployeesPage() {
             value={form.gender}
             onChange={(e) => setForm((v) => ({ ...v, gender: e.target.value }))}
           >
+            <option value="" disabled>Gender</option>
             <option value="MALE">MALE</option>
             <option value="FEMALE">FEMALE</option>
-            <option value="OTHER">OTHER</option>
-            <option value="UNKNOWN">UNKNOWN</option>
           </select>
           <input
             placeholder="CERT"
             value={form.cert}
             onChange={(e) => setForm((v) => ({ ...v, cert: e.target.value }))}
           />
-          <input
-            placeholder="SCHEME *"
+          <select
             value={form.scheme}
             onChange={(e) => setForm((v) => ({ ...v, scheme: e.target.value }))}
-          />
-          <select
-            value={form.shift_pattern}
-            onChange={(e) => setForm((v) => ({ ...v, shift_pattern: e.target.value }))}
           >
-            <option value="4W2O">4W2O</option>
-            <option value="5W1O">5W1O</option>
+            <option value="" disabled>Scheme *</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
           </select>
+          <details className="multi-select">
+            <summary>{form.shift_patterns.length ? form.shift_patterns.join(', ') : 'Shift Pattern *'}</summary>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.shift_patterns.includes('4W2O')}
+                onChange={() => toggleShiftPattern('4W2O')}
+              />
+              4W2O
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={form.shift_patterns.includes('5W1O')}
+                onChange={() => toggleShiftPattern('5W1O')}
+              />
+              5W1O
+            </label>
+          </details>
           <input
             type="number"
             min="0"

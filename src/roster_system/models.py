@@ -25,6 +25,7 @@ class Employee(Base):
     cert: Mapped[str | None] = mapped_column(String(64), nullable=True)
     scheme: Mapped[str] = mapped_column(String(8), index=True)
     shift_pattern: Mapped[str] = mapped_column(String(16), default="5W1O", nullable=False)
+    shift_patterns_csv: Mapped[str] = mapped_column(String(128), default="", nullable=False)
     contractual_hours: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     forecast_hours: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -39,6 +40,37 @@ class Employee(Base):
         onupdate=now_sg,
         nullable=False,
     )
+
+    @property
+    def shift_patterns(self) -> list[str]:
+        values = [value.strip().upper() for value in (self.shift_patterns_csv or "").split(",") if value.strip()]
+        if not values:
+            return [self.shift_pattern]
+        return values
+
+    @shift_patterns.setter
+    def shift_patterns(self, values: list[str]) -> None:
+        normalized_values: list[str] = []
+        for value in values:
+            raw = getattr(value, "value", value)
+            if raw is None:
+                continue
+            text = str(raw).strip().upper()
+            if text:
+                normalized_values.append(text)
+
+        cleaned = normalized_values
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for value in cleaned:
+            if value in seen:
+                continue
+            deduped.append(value)
+            seen.add(value)
+
+        if not deduped:
+            deduped = [self.shift_pattern]
+        self.shift_patterns_csv = ",".join(deduped)
 
 
 class UploadFileRecord(Base):

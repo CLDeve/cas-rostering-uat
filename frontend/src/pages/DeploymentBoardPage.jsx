@@ -6,7 +6,16 @@ import {
   replaceDeploymentAssignments,
 } from '../api'
 
-const SLOT_CAPACITY = 25
+const DEFAULT_SLOT_CAPACITY = 25
+
+function getSiteSlotCapacity(site) {
+  const requirements = Array.isArray(site?.requirements) ? site.requirements : []
+  const total = requirements.reduce((sum, req) => {
+    const n = Number(req?.required_headcount ?? 0)
+    return sum + (Number.isFinite(n) && n > 0 ? n : 0)
+  }, 0)
+  return total > 0 ? total : DEFAULT_SLOT_CAPACITY
+}
 
 function todaySgIso() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -91,7 +100,7 @@ function alertType(msg) {
 function buildEmptyAssignmentsBySite(sites) {
   const assignments = {}
   for (const site of sites || []) {
-    assignments[String(site.id)] = Array.from({ length: SLOT_CAPACITY }, () => null)
+    assignments[String(site.id)] = Array.from({ length: getSiteSlotCapacity(site) }, () => null)
   }
   return assignments
 }
@@ -106,7 +115,7 @@ function applyAssignmentRows(baseAssignmentsBySite, assignmentRows) {
     const slotIndex = Number(row.slot_index)
     const employeeId = String(row.employee_id)
     if (!next[siteId]) continue
-    if (Number.isNaN(slotIndex) || slotIndex < 0 || slotIndex >= SLOT_CAPACITY) continue
+    if (Number.isNaN(slotIndex) || slotIndex < 0 || slotIndex >= next[siteId].length) continue
     next[siteId][slotIndex] = employeeId
   }
 
@@ -148,10 +157,47 @@ export default function DeploymentBoardPage() {
   const [officerToSite, setOfficerToSite] = useState({})
   const [dirty, setDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [siteSearch, setSiteSearch] = useState('')
+  const [gapOnly, setGapOnly] = useState(false)
+  const [selectedSiteId, setSelectedSiteId] = useState('')
 
   const activeSites = useMemo(
     () => filterSitesForDate(allSites, selectedDate),
     [allSites, selectedDate]
+  )
+
+  const siteRows = useMemo(() => {
+    return activeSites.map((site) => {
+      const siteKey = String(site.id)
+      const slotCapacity = getSiteSlotCapacity(site)
+      const slots = assignmentsBySite[siteKey] || Array.from({ length: slotCapacity }, () => null)
+      const assignedCount = slots.filter((x) => x !== null).length
+      const gap = Math.max(slotCapacity - assignedCount, 0)
+      return {
+        site,
+        siteKey,
+        slotCapacity,
+        slots,
+        assignedCount,
+        gap,
+      }
+    })
+  }, [activeSites, assignmentsBySite])
+
+  const filteredSiteRows = useMemo(() => {
+    const q = siteSearch.trim().toLowerCase()
+    return siteRows
+      .filter((row) => {
+        if (gapOnly && row.gap <= 0) return false
+        if (!q) return true
+        return String(row.site.site_name || '').toLowerCase().includes(q)
+      })
+      .sort((a, b) => b.gap - a.gap || a.site.site_name.localeCompare(b.site.site_name))
+  }, [siteRows, siteSearch, gapOnly])
+
+  const selectedSiteRow = useMemo(
+    () => filteredSiteRows.find((row) => String(row.site.id) === String(selectedSiteId)) || null,
+    [filteredSiteRows, selectedSiteId],
   )
 
   async function loadAssignmentsForDate(dateIso, sites = allSites) {
@@ -209,12 +255,14 @@ export default function DeploymentBoardPage() {
 
   function assignOfficer(officerId, siteId, slotIndex = null) {
     const siteKey = String(siteId)
+    const site = allSites.find((item) => String(item.id) === siteKey)
+    const slotCapacity = getSiteSlotCapacity(site)
 
     setAssignmentsBySite((prevAssignments) => {
       const assignments = Object.fromEntries(
         Object.entries(prevAssignments).map(([k, v]) => [k, [...v]])
       )
-      if (!assignments[siteKey]) assignments[siteKey] = Array.from({ length: SLOT_CAPACITY }, () => null)
+      if (!assignments[siteKey]) assignments[siteKey] = Array.from({ length: slotCapacity }, () => null)
 
       setOfficerToSite((prevOfficerIndex) => {
         const officerIndex = { ...prevOfficerIndex }
@@ -222,12 +270,12 @@ export default function DeploymentBoardPage() {
 
         const slots = assignments[siteKey]
         let targetIndex = Number.isInteger(slotIndex) ? slotIndex : -1
-        if (targetIndex < 0 || targetIndex >= SLOT_CAPACITY || slots[targetIndex] !== null) {
+        if (targetIndex < 0 || targetIndex >= slots.length || slots[targetIndex] !== null) {
           targetIndex = slots.findIndex((value) => value === null)
         }
 
         if (targetIndex < 0) {
-          setStatus('This site is full (25/25). Remove one officer or drop to another site.')
+          setStatus(`This site is full (${slots.length}/${slots.length}). Remove one officer or drop to another site.`)
           return officerIndex
         }
 
@@ -326,10 +374,37 @@ export default function DeploymentBoardPage() {
           <button type="button" onClick={saveAssignments} disabled={!dirty || isSaving}>
             {isSaving ? 'Saving...' : 'Save Assignments'}
           </button>
+          <input
+            placeholder="Search site"
+            value={siteSearch}
+            onChange={(e) => setSiteSearch(e.target.value)}
+            style={{ minWidth: 180 }}
+          />
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={gapOnly} onChange={(e) => setGapOnly(e.target.checked)} />
+            Gap only
+          </label>
+          <select
+            value={selectedSiteId}
+            onChange={(e) => setSelectedSiteId(e.target.value)}
+            style={{ minWidth: 260 }}
+          >
+            <option value="">Select Site *</option>
+            {activeSites.map((site) => (
+              <option key={`site-pick-${site.id}`} value={String(site.id)}>
+                {site.site_name}
+              </option>
+            ))}
+          </select>
         </div>
         {status && <div className={`alert alert-${alertType(status)}`}>{status}</div>}
       </section>
 
+      {!selectedSiteId ? (
+        <section className="panel">
+          <div className="empty-state">Please select a site first to view the deployment board.</div>
+        </section>
+      ) : (
       <section className="board-grid">
         <div className="panel officer-pool" onDragOver={allowDrop} onDrop={onDropToPool}>
           <h2>Available Officers ({availableOfficers.length})</h2>
@@ -354,67 +429,101 @@ export default function DeploymentBoardPage() {
         </div>
 
         <div className="panel">
-          <h2>Site Cards ({activeSites.length} active)</h2>
-          {activeSites.length === 0 ? (
+          <h2>Site Queue ({filteredSiteRows.length}/{activeSites.length})</h2>
+          {filteredSiteRows.length === 0 ? (
             <div className="muted">No sites active for the selected date.</div>
           ) : (
-            <div className="site-list">
-              {activeSites.map((site) => {
-                const siteKey = String(site.id)
-                const slots = assignmentsBySite[siteKey] || Array.from({ length: SLOT_CAPACITY }, () => null)
-                const assignedCount = slots.filter((x) => x !== null).length
-                const adhocWindow =
-                  site.mode === 'ADHOC'
-                    ? `${formatSgDateTime(site.adhoc_start_at)} → ${formatSgDateTime(site.adhoc_end_at)}`
-                    : '—'
+            <div className="board-ops-grid">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Site</th>
+                      <th>Mode</th>
+                      <th>Required</th>
+                      <th>Assigned</th>
+                      <th>Gap</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSiteRows.map((row) => (
+                      <tr
+                        key={row.site.id}
+                        onClick={() => setSelectedSiteId(row.site.id)}
+                        style={{
+                          cursor: 'pointer',
+                          background:
+                            String(selectedSiteRow?.site?.id) === String(row.site.id)
+                              ? 'var(--accent-subtle)'
+                              : undefined,
+                        }}
+                      >
+                        <td>{row.site.site_name}</td>
+                        <td>{row.site.mode}</td>
+                        <td>{row.slotCapacity}</td>
+                        <td>{row.assignedCount}</td>
+                        <td style={{ fontWeight: 700, color: row.gap > 0 ? 'var(--danger-text)' : 'var(--success-text)' }}>
+                          {row.gap}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-                return (
-                  <article key={site.id} className="site-card">
-                    <header>
-                      <h3>{site.site_name}</h3>
-                      <span className={`badge badge-mode-${site.mode.toLowerCase()}`}>
-                        {site.mode}
-                      </span>
-                    </header>
-                    <p>Deployment Days: {(site.deployment_days || []).join(', ') || '—'}</p>
-                    <p>Adhoc Window: {adhocWindow}</p>
-                    <p>Last Updated: {formatSgDateTime(site.updated_at)}</p>
-                    <p>
-                      <strong style={{ color: assignedCount >= SLOT_CAPACITY ? 'var(--danger-text)' : 'var(--text-secondary)' }}>
-                        Assigned: {assignedCount}/{SLOT_CAPACITY}
-                      </strong>
-                    </p>
-                    <div className="slot-grid">
-                      {slots.map((officerId, index) => {
-                        const officer = allOfficers.find((item) => String(item.id) === String(officerId))
-                        return (
-                          <div
-                            key={`${site.id}-${index}`}
-                            className="slot"
-                            onDragOver={allowDrop}
-                            onDrop={(event) => onDropToSlot(event, site.id, index)}
-                          >
-                            {officer && (
-                              <div
-                                className="assigned-chip"
-                                draggable
-                                onDragStart={(event) => onOfficerDragStart(event, officer.id)}
-                                title={`${officer.name} (${officer.staff_id})`}
-                              >
-                                {officer.name} ({officer.staff_id})
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </article>
-                )
-              })}
+              {selectedSiteRow && (
+                <article className="site-card">
+                  <header>
+                    <h3>{selectedSiteRow.site.site_name}</h3>
+                    <span className={`badge badge-mode-${selectedSiteRow.site.mode.toLowerCase()}`}>
+                      {selectedSiteRow.site.mode}
+                    </span>
+                  </header>
+                  <p>Deployment Days: {(selectedSiteRow.site.deployment_days || []).join(', ') || '—'}</p>
+                  <p>
+                    Adhoc Window:
+                    {' '}
+                    {selectedSiteRow.site.mode === 'ADHOC'
+                      ? `${formatSgDateTime(selectedSiteRow.site.adhoc_start_at)} → ${formatSgDateTime(selectedSiteRow.site.adhoc_end_at)}`
+                      : '—'}
+                  </p>
+                  <p>Last Updated: {formatSgDateTime(selectedSiteRow.site.updated_at)}</p>
+                  <p>
+                    <strong style={{ color: selectedSiteRow.gap > 0 ? 'var(--danger-text)' : 'var(--text-secondary)' }}>
+                      Assigned: {selectedSiteRow.assignedCount}/{selectedSiteRow.slotCapacity}
+                    </strong>
+                  </p>
+                  <div className="slot-grid">
+                    {selectedSiteRow.slots.map((officerId, index) => {
+                      const officer = allOfficers.find((item) => String(item.id) === String(officerId))
+                      return (
+                        <div
+                          key={`${selectedSiteRow.site.id}-${index}`}
+                          className="slot"
+                          onDragOver={allowDrop}
+                          onDrop={(event) => onDropToSlot(event, selectedSiteRow.site.id, index)}
+                        >
+                          {officer && (
+                            <div
+                              className="assigned-chip"
+                              draggable
+                              onDragStart={(event) => onOfficerDragStart(event, officer.id)}
+                              title={`${officer.name} (${officer.staff_id})`}
+                            >
+                              {officer.name} ({officer.staff_id})
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </article>
+              )}
             </div>
           )}
         </div>
       </section>
+      )}
     </>
   )
 }

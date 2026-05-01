@@ -137,6 +137,11 @@ export function listEmployees(params = { page: 1, page_size: 100 }) {
 export function createEmployee(payload) {
   if (USE_MOCK) {
     const rows = readMock(MOCK_KEYS.employees, [])
+    const incomingStaffId = String(payload.staff_id || '').trim()
+    const duplicate = rows.find((row) => String(row.staff_id || '').trim() === incomingStaffId)
+    if (duplicate) {
+      return Promise.reject(new Error('staff_id already exists'))
+    }
     const nextId = rows.length ? Math.max(...rows.map((x) => x.id)) + 1 : 1
     const row = {
       id: nextId,
@@ -150,6 +155,9 @@ export function createEmployee(payload) {
       cert: payload.cert || null,
       scheme: payload.scheme,
       shift_pattern: payload.shift_pattern || '5W1O',
+      shift_patterns: Array.isArray(payload.shift_patterns) && payload.shift_patterns.length
+        ? payload.shift_patterns
+        : [payload.shift_pattern || '5W1O'],
       contractual_hours: payload.contractual_hours ?? '264',
     }
     rows.push(row)

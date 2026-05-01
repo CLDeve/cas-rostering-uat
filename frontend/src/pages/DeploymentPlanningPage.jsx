@@ -69,6 +69,8 @@ export default function DeploymentPlanningPage() {
   const [status, setStatus] = useState('Loading deployment sites...')
   const [sites, setSites] = useState([])
   const [siteName, setSiteName] = useState('')
+  const [siteLat, setSiteLat] = useState('')
+  const [siteLng, setSiteLng] = useState('')
   const [mode, setMode] = useState('RECURRING')
   const [days, setDays] = useState(['MON', 'TUE', 'WED', 'THU', 'FRI'])
   const [savedRecurringDays, setSavedRecurringDays] = useState(['MON', 'TUE', 'WED', 'THU', 'FRI'])
@@ -150,6 +152,8 @@ export default function DeploymentPlanningPage() {
 
     const payload = {
       site_name: siteName.trim(),
+      site_lat: siteLat.trim() ? Number(siteLat) : null,
+      site_lng: siteLng.trim() ? Number(siteLng) : null,
       mode,
       deployment_days: mode === 'RECURRING' ? [...days].sort() : [],
       adhoc_start_at: mode === 'ADHOC' ? toSgDateTime(adhocStart) : null,
@@ -164,6 +168,8 @@ export default function DeploymentPlanningPage() {
     try {
       await createDeployment(payload)
       setSiteName('')
+      setSiteLat('')
+      setSiteLng('')
       setMode('RECURRING')
       setDays(['MON', 'TUE', 'WED', 'THU', 'FRI'])
       setSavedRecurringDays(['MON', 'TUE', 'WED', 'THU', 'FRI'])
@@ -194,6 +200,22 @@ export default function DeploymentPlanningPage() {
               value={siteName}
               onChange={(e) => setSiteName(e.target.value)}
               style={{ minWidth: 240 }}
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Site Latitude (Optional)"
+              value={siteLat}
+              onChange={(e) => setSiteLat(e.target.value)}
+              style={{ minWidth: 220 }}
+            />
+            <input
+              type="number"
+              step="any"
+              placeholder="Site Longitude (Optional)"
+              value={siteLng}
+              onChange={(e) => setSiteLng(e.target.value)}
+              style={{ minWidth: 220 }}
             />
           </div>
 
@@ -319,13 +341,14 @@ export default function DeploymentPlanningPage() {
                 <th>Requirements</th>
                 <th>Deployment Days</th>
                 <th>Adhoc Window</th>
+                <th>Site Coords</th>
                 <th>Last Updated</th>
               </tr>
             </thead>
             <tbody>
               {sites.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
                     No deployment sites configured.
                   </td>
                 </tr>
@@ -349,6 +372,11 @@ export default function DeploymentPlanningPage() {
                     <td style={{ fontSize: 12 }}>
                       {site.mode === 'ADHOC'
                         ? `${formatSg(site.adhoc_start_at)} → ${formatSg(site.adhoc_end_at)}`
+                        : '—'}
+                    </td>
+                    <td style={{ fontSize: 12 }}>
+                      {site.site_lat != null && site.site_lng != null
+                        ? `${site.site_lat}, ${site.site_lng}`
                         : '—'}
                     </td>
                     <td style={{ fontSize: 12 }}>{formatSg(site.updated_at)}</td>

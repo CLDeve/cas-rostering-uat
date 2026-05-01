@@ -55,6 +55,21 @@ def test_create_employee() -> None:
     assert Decimal(body["contractual_hours"]) == Decimal("264.00")
 
 
+def test_create_employee_with_multiple_shift_patterns() -> None:
+    payload = {
+        **employee_payload("100001A"),
+        "shift_pattern": "4W2O",
+        "shift_patterns": ["4W2O", "5W1O"],
+    }
+    with TestClient(app) as client:
+        response = client.post("/api/v1/employees", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["shift_pattern"] == "4W2O"
+    assert body["shift_patterns"] == ["4W2O", "5W1O"]
+
+
 def test_duplicate_staff_id_conflict() -> None:
     with TestClient(app) as client:
         first = client.post("/api/v1/employees", json=employee_payload("100002"))

@@ -307,6 +307,69 @@ body {
   background: var(--sidebar-indicator);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
 }
+.subnav-link {
+  margin-left: 0;
+  padding-left: 28px;
+  font-size: 12px;
+  min-height: 30px;
+}
+.subnav-link .nav-icon {
+  width: 13px;
+  height: 13px;
+  opacity: .55;
+}
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--sidebar-text);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  text-align: left;
+  position: relative;
+  margin: 0;
+  transition: background var(--ease), color var(--ease);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  box-shadow: none;
+}
+.nav-group:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-title);
+}
+.nav-group:focus {
+  outline: none;
+  box-shadow: none;
+}
+.nav-group:focus-visible {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-title);
+}
+.nav-group .nav-icon {
+  width: 16px;
+  height: 16px;
+  opacity: .65;
+  flex-shrink: 0;
+}
+.nav-group:hover .nav-icon { opacity: 1; }
+.nav-group .nav-text::after {
+  content: '▸';
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+  vertical-align: middle;
+}
+.nav-group.expanded .nav-text::after {
+  content: '▾';
+}
 
 /* Sidebar Footer */
 .sidebar-footer {
@@ -785,6 +848,34 @@ tbody tr:hover td      { background: var(--bg-subtle); }
   display: grid;
   gap: 12px;
 }
+.multi-select {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 8px 10px;
+  min-height: 40px;
+}
+.multi-select summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.multi-select summary::-webkit-details-marker {
+  display: none;
+}
+.multi-select[open] {
+  box-shadow: var(--shadow-sm);
+}
+.multi-select label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
 
 
 /* ── WEEKDAY CHIPS ────────────────────────────────────────────── */
@@ -863,6 +954,12 @@ tbody tr:hover td      { background: var(--bg-subtle); }
 .officer-pool { min-height: 420px; }
 .pool-list,
 .site-list { display: grid; gap: 8px; }
+.board-ops-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(440px, 1.1fr);
+  gap: 12px;
+  align-items: start;
+}
 
 .officer-chip {
   border: 1px solid var(--border);
@@ -961,10 +1058,33 @@ tbody tr:hover td      { background: var(--bg-subtle); }
   white-space: nowrap;
   padding: 6px 7px;
 }
-.roster-table th:first-child,
-.roster-table td:first-child {
+.roster-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  background: var(--surface);
+}
+.roster-table th.sticky-col,
+.roster-table td.sticky-col {
+  position: sticky;
+  z-index: 6;
+  background: var(--surface);
+}
+.roster-table .sticky-col-1 { left: 0; min-width: 64px; }
+.roster-table .sticky-col-2 { left: 64px; min-width: 240px; text-align: left; }
+.roster-table .sticky-col-3 { left: 304px; min-width: 80px; }
+.roster-table .sticky-col-4 { left: 384px; min-width: 88px; }
+.roster-table .sticky-col-5 { right: 0; min-width: 100px; }
+.roster-table .sticky-col-summary {
+  left: 0;
+  z-index: 8;
   text-align: left;
-  min-width: 180px;
+}
+.roster-table thead .sticky-col {
+  z-index: 9;
+}
+.roster-table th.sticky-col-5 {
+  right: 0;
 }
 
 .roster-table td.status-w     { background: var(--work-bg);  color: var(--work-text); }
@@ -1028,6 +1148,91 @@ tbody tr:hover td      { background: var(--bg-subtle); }
   border-top: 2px solid var(--border-strong);
 }
 
+.officer-profile-wireframe {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.officer-info-card,
+.officer-side-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 18px;
+}
+.officer-info-card {
+  display: grid;
+  gap: 10px;
+  font-size: 24px;
+  line-height: 1.4;
+}
+.officer-side-stack {
+  display: grid;
+  gap: 16px;
+}
+.officer-side-card h3 {
+  margin: 0 0 10px;
+}
+.list-editor-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.list-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.list-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.list-chip-green {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+.list-chip-red {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+.list-chip button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.forecast-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.roster-toolbar {
+  margin-bottom: 10px;
+}
+
 
 /* ── UTILITIES ────────────────────────────────────────────────── */
 .muted {
@@ -1062,6 +1267,7 @@ tbody tr:hover td      { background: var(--bg-subtle); }
 @media (max-width: 1280px) {
   .officer-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
   .board-grid   { grid-template-columns: 1fr; }
+  .board-ops-grid { grid-template-columns: 1fr; }
   .req-row      { grid-template-columns: 1fr 1fr; }
   .dashboard-cards { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
 }
@@ -1108,6 +1314,7 @@ tbody tr:hover td      { background: var(--bg-subtle); }
 @media (max-width: 768px) {
   .page { padding: 16px; }
   .form-grid, .officer-grid { grid-template-columns: 1fr; }
+  .officer-profile-wireframe { grid-template-columns: 1fr; }
   .days-row { gap: 6px; }
   .dashboard-cards { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
 }

@@ -167,7 +167,20 @@ alembic downgrade -1
 
 ## Notes for Production Hardening
 
-- Replace SQLite with PostgreSQL
-- Integrate with enterprise IdP (OIDC/JWT) and disable local dev tokens
+The API now enforces startup safety checks when `ROSTER_APP_ENV=production`.
+If unsafe settings are detected, startup fails fast.
+
+Minimum production requirements:
+- `ROSTER_APP_ENV=production`
+- `ROSTER_DATABASE_URL` must not use SQLite
+- `ROSTER_ALLOW_DEV_TOKENS=false`
+- `ROSTER_JWT_SECRET` must be strong (`>=32` chars) and not default
+- `ROSTER_JWT_ISSUER` and `ROSTER_JWT_AUDIENCE` must be set
+- `ROSTER_CORS_ALLOWED_ORIGINS` must not include localhost
+- `ROSTER_SECURITY_HSTS_ENABLED=true`
+
+Still recommended before enterprise go-live:
+- Integrate with enterprise IdP JWKS validation and key rotation policy
 - Forward audit events to SIEM/immutable log pipeline
+- Use distributed rate limiting (e.g. Redis-based) for multi-instance deployments
 - Add import pipeline from Excel with validation and approval workflow

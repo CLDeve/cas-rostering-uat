@@ -53,11 +53,13 @@ class EmployeeService:
 
     def create_employee(self, payload: EmployeeCreate) -> Employee:
         data = payload.model_dump()
+        shift_patterns = data.pop("shift_patterns", None) or []
         if data.get("serial_number") is None:
             data["serial_number"] = self._next_serial_number()
         if data.get("forecast_hours") is None:
             data["forecast_hours"] = data["contractual_hours"]
         employee = Employee(**data)
+        employee.shift_patterns = shift_patterns if shift_patterns else [employee.shift_pattern]
         try:
             return self.repository.create(employee)
         except IntegrityError as exc:
@@ -76,8 +78,12 @@ class EmployeeService:
 
     def update_employee(self, employee_id: int, payload: EmployeeUpdate) -> Employee:
         employee = self.get_employee(employee_id)
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        data = payload.model_dump(exclude_unset=True)
+        shift_patterns = data.pop("shift_patterns", None)
+        for field, value in data.items():
             setattr(employee, field, value)
+        if shift_patterns is not None:
+            employee.shift_patterns = shift_patterns
 
         try:
             return self.repository.update(employee)
@@ -291,6 +297,7 @@ class EmployeeService:
                     forecast_hours=Decimal(row.forecast_hours),
                     is_active=True,
                 )
+                new_employee.shift_patterns = [row.shift_pattern]
                 self.repository.db.add(new_employee)
                 created += 1
                 continue
@@ -305,6 +312,7 @@ class EmployeeService:
             employee.cert = row.cert
             employee.scheme = row.scheme
             employee.shift_pattern = row.shift_pattern
+            employee.shift_patterns = [row.shift_pattern]
             employee.contractual_hours = Decimal(row.contractual_hours)
             employee.forecast_hours = Decimal(row.forecast_hours)
             employee.is_active = True

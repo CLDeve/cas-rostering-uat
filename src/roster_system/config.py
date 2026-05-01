@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    app_env: str = "development"
     app_name: str = "Roster System"
     api_prefix: str = "/api/v1"
     database_url: str = "sqlite:///./data/roster.db"
@@ -38,6 +39,37 @@ class Settings(BaseSettings):
     security_referrer_policy: str = "strict-origin-when-cross-origin"
     security_permissions_policy: str = "geolocation=(), microphone=(), camera=()"
     rate_limit_per_minute: int = 180
+
+    def validate_production_safety(self) -> None:
+        if self.app_env.lower() != "production":
+            return
+
+        errors: list[str] = []
+
+        if self.database_url.startswith("sqlite"):
+            errors.append("ROSTER_DATABASE_URL must use a production database (SQLite is not allowed in production).")
+
+        if self.allow_dev_tokens:
+            errors.append("ROSTER_ALLOW_DEV_TOKENS must be false in production.")
+
+        secret = (self.jwt_secret or "").strip()
+        if not secret or secret == "change-me-in-production" or len(secret) < 32:
+            errors.append("ROSTER_JWT_SECRET must be set to a strong secret (>=32 chars) in production.")
+
+        if not (self.jwt_issuer or "").strip():
+            errors.append("ROSTER_JWT_ISSUER must be set in production.")
+        if not (self.jwt_audience or "").strip():
+            errors.append("ROSTER_JWT_AUDIENCE must be set in production.")
+
+        localhost_origins = [o for o in self.cors_allowed_origins if "127.0.0.1" in o or "localhost" in o]
+        if localhost_origins:
+            errors.append("ROSTER_CORS_ALLOWED_ORIGINS contains localhost entries in production.")
+
+        if not self.security_hsts_enabled:
+            errors.append("ROSTER_SECURITY_HSTS_ENABLED must be true in production.")
+
+        if errors:
+            raise ValueError("Production safety checks failed: " + " ".join(errors))
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="ROSTER_")
 

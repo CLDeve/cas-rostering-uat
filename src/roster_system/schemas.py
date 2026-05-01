@@ -56,6 +56,7 @@ class EmployeeBase(BaseModel):
     cert: str | None = Field(default=None, max_length=64)
     scheme: str = Field(..., min_length=1, max_length=8)
     shift_pattern: ShiftPattern = Field(default=ShiftPattern.WORK_5_OFF_1)
+    shift_patterns: list[ShiftPattern] = Field(default_factory=list)
     contractual_hours: Decimal = Field(..., ge=0, decimal_places=2)
     forecast_hours: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
@@ -75,6 +76,15 @@ class EmployeeBase(BaseModel):
         cleaned = value.strip()
         return cleaned or None
 
+    @model_validator(mode="after")
+    def normalize_shift_patterns(self):
+        deduped = list(dict.fromkeys(self.shift_patterns))
+        if not deduped:
+            deduped = [self.shift_pattern]
+        self.shift_patterns = deduped
+        self.shift_pattern = deduped[0]
+        return self
+
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -90,6 +100,7 @@ class EmployeeUpdate(BaseModel):
     cert: str | None = Field(default=None, max_length=64)
     scheme: str | None = Field(default=None, min_length=1, max_length=8)
     shift_pattern: ShiftPattern | None = None
+    shift_patterns: list[ShiftPattern] | None = None
     contractual_hours: Decimal | None = Field(default=None, ge=0, decimal_places=2)
     forecast_hours: Decimal | None = Field(default=None, ge=0, decimal_places=2)
     is_active: bool | None = None
@@ -103,6 +114,16 @@ class EmployeeUpdate(BaseModel):
         if not cleaned:
             raise ValueError("field cannot be blank")
         return cleaned
+
+    @model_validator(mode="after")
+    def normalize_shift_patterns(self):
+        if self.shift_patterns is not None:
+            deduped = list(dict.fromkeys(self.shift_patterns))
+            if not deduped:
+                raise ValueError("shift_patterns cannot be empty when provided")
+            self.shift_patterns = deduped
+            self.shift_pattern = deduped[0]
+        return self
 
 
 class EmployeeRead(EmployeeBase):

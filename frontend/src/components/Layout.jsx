@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   PanelLeft,
   UserCog,
+  IdCard,
 } from 'lucide-react'
 
 const navItems = [
@@ -29,28 +30,64 @@ const navItems = [
     subtitle: 'Manage officers, uploads, and inline creation.',
   },
   {
+    to: '/officer-profile',
+    label: 'Officer Profile',
+    icon: IdCard,
+    subtitle: 'View and manage detailed officer profile information.',
+  },
+  {
     to: '/rostering-engine',
     label: 'Rostering Engine',
     icon: CalendarDays,
     subtitle: 'Calendar roster with shift logic and forecast controls.',
   },
   {
-    to: '/deployment-planning',
-    label: 'Deployment Planning',
+    to: '/deployment-group',
+    label: 'Deployment',
+    icon: Building2,
+    subtitle: 'Deployment planning and board operations.',
+    isGroup: true,
+    groupKey: 'deployment',
+  },
+  {
+    to: '/static-deployment-planning',
+    label: 'Static Deployment Planning',
     icon: Building2,
     subtitle: 'Create recurring and adhoc site deployment requirements.',
+    subnav: true,
+    groupKey: 'deployment',
   },
   {
     to: '/deployment-board',
     label: 'Deployment Board',
     icon: LayoutGrid,
     subtitle: 'Assign available officers to site slots by date.',
+    subnav: true,
+    groupKey: 'deployment',
   },
   {
-    to: '/training',
+    to: '/training-group',
     label: 'Training',
     icon: GraduationCap,
+    subtitle: 'Training modules and course operations.',
+    isGroup: true,
+    groupKey: 'training',
+  },
+  {
+    to: '/course-scheduling',
+    label: 'Course Scheduling',
+    icon: GraduationCap,
     subtitle: 'Create and track course schedules.',
+    subnav: true,
+    groupKey: 'training',
+  },
+  {
+    to: '/course-creation',
+    label: 'Course Creation',
+    icon: GraduationCap,
+    subtitle: 'Create training courses.',
+    subnav: true,
+    groupKey: 'training',
   },
   {
     to: '/rules',
@@ -67,8 +104,21 @@ const navItems = [
 ]
 
 function resolveMeta(pathname) {
+  if (pathname.startsWith('/deployment-group')) {
+    return {
+      label: 'Deployment',
+      subtitle: 'Deployment planning and board operations.',
+    }
+  }
+  if (pathname.startsWith('/training-group')) {
+    return {
+      label: 'Training',
+      subtitle: 'Training modules and course operations.',
+    }
+  }
+  const sorted = [...navItems].filter((item) => !item.isGroup).sort((a, b) => b.to.length - a.to.length)
   return (
-    navItems.find((item) => pathname.startsWith(item.to)) ?? {
+    sorted.find((item) => pathname.startsWith(item.to)) ?? {
       label: 'Rostering System',
       subtitle: 'Enterprise workforce planning',
     }
@@ -80,6 +130,8 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
   const meta = resolveMeta(location.pathname)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [apiTokenInput, setApiTokenInput] = useState('')
+  const [trainingExpanded, setTrainingExpanded] = useState(true)
+  const [deploymentExpanded, setDeploymentExpanded] = useState(true)
 
   useEffect(() => {
     const saved = localStorage.getItem('roster_sidebar_open')
@@ -88,11 +140,23 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
     }
     const existingToken = sessionStorage.getItem('roster_api_token') || localStorage.getItem('roster_api_token') || ''
     setApiTokenInput(existingToken)
+    const trainingState = localStorage.getItem('roster_training_expanded')
+    if (trainingState === '0') setTrainingExpanded(false)
+    const deploymentState = localStorage.getItem('roster_deployment_expanded')
+    if (deploymentState === '0') setDeploymentExpanded(false)
   }, [])
 
   useEffect(() => {
     localStorage.setItem('roster_sidebar_open', sidebarOpen ? '1' : '0')
   }, [sidebarOpen])
+
+  useEffect(() => {
+    localStorage.setItem('roster_training_expanded', trainingExpanded ? '1' : '0')
+  }, [trainingExpanded])
+
+  useEffect(() => {
+    localStorage.setItem('roster_deployment_expanded', deploymentExpanded ? '1' : '0')
+  }, [deploymentExpanded])
 
   return (
     <div className={`app-shell${darkMode ? ' dark' : ''}${sidebarOpen ? '' : ' sidebar-collapsed'}`}>
@@ -126,16 +190,43 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
 
         <nav className="sidebar-nav">
           <div className="nav-section-label">Navigation</div>
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-            >
-              <Icon className="nav-icon" />
-              <span className="nav-text">{label}</span>
-            </NavLink>
-          ))}
+          {navItems
+            .filter((item) => {
+              if (!item.subnav) return true
+              if (item.groupKey === 'training') return trainingExpanded
+              if (item.groupKey === 'deployment') return deploymentExpanded
+              return true
+            })
+            .map(({ to, label, icon: Icon, subnav, isGroup, groupKey }) => (
+              isGroup ? (
+                <div
+                  key={to}
+                  className={`nav-link${
+                    (groupKey === 'training' && trainingExpanded) || (groupKey === 'deployment' && deploymentExpanded)
+                      ? ' expanded'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    if (groupKey === 'training') setTrainingExpanded((v) => !v)
+                    if (groupKey === 'deployment') setDeploymentExpanded((v) => !v)
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <Icon className="nav-icon" />
+                  <span className="nav-text">{label}</span>
+                </div>
+              ) : (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => `nav-link${isActive ? ' active' : ''}${subnav ? ' subnav-link' : ''}`}
+                >
+                  <Icon className="nav-icon" />
+                  <span className="nav-text">{label}</span>
+                </NavLink>
+              )
+            ))}
         </nav>
 
         <div className="sidebar-footer">

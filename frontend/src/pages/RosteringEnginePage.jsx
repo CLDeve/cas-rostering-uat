@@ -61,6 +61,11 @@ export default function RosteringEnginePage() {
   const [status, setStatus] = useState('Click Generate Roster to load data.')
   const [headers, setHeaders] = useState([])
   const [rows, setRows] = useState([])
+  const [teamFilter, setTeamFilter] = useState('ALL')
+  const [schemeFilter, setSchemeFilter] = useState('ALL')
+  const [patternFilter, setPatternFilter] = useState('ALL')
+  const [selectedOfficerIds, setSelectedOfficerIds] = useState(new Set())
+  const [bulkStatus, setBulkStatus] = useState('W')
 
   const yearOptions = useMemo(() => {
     const base = now.getFullYear()
@@ -83,6 +88,7 @@ export default function RosteringEnginePage() {
       }))
       setHeaders(payload.day_headers || [])
       setRows(normalizedRows)
+      setSelectedOfficerIds(new Set())
       const monthLabel = MONTH_OPTIONS.find((item) => item.value === payload.month)?.label ?? String(payload.month)
       setStatus(`Roster generated for ${monthLabel} ${payload.year}.`)
     } catch (err) {
@@ -135,16 +141,84 @@ export default function RosteringEnginePage() {
     })
   }
 
+  function toggleOfficerSelection(employeeId) {
+    setSelectedOfficerIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(employeeId)) next.delete(employeeId)
+      else next.add(employeeId)
+      return next
+    })
+  }
+
+  function toggleSelectAllVisible(visibleRows) {
+    const visibleIds = new Set(visibleRows.map((row) => row.employee_id))
+    const allSelected = visibleRows.length > 0 && visibleRows.every((row) => selectedOfficerIds.has(row.employee_id))
+    setSelectedOfficerIds((prev) => {
+      const next = new Set(prev)
+      if (allSelected) {
+        for (const id of visibleIds) next.delete(id)
+      } else {
+        for (const id of visibleIds) next.add(id)
+      }
+      return next
+    })
+  }
+
+  function applyBulkStatus(visibleRows) {
+    if (selectedOfficerIds.size === 0) {
+      setStatus('Select at least one officer for bulk update.')
+      return
+    }
+    const selectedVisibleIds = new Set(
+      visibleRows.filter((row) => selectedOfficerIds.has(row.employee_id)).map((row) => row.employee_id),
+    )
+    if (selectedVisibleIds.size === 0) {
+      setStatus('Selected officers are outside current filters.')
+      return
+    }
+
+    setRows((prev) =>
+      prev.map((row) => {
+        if (!selectedVisibleIds.has(row.employee_id)) return row
+        const schedule = row.schedule.map((cell) => (cell === 'EMPTY' ? 'EMPTY' : bulkStatus))
+        return { ...row, schedule }
+      }),
+    )
+    setStatus(`Applied ${bulkStatus} to selected officers (editable days only).`)
+  }
+
+  const teams = useMemo(() => ['ALL', ...Array.from(new Set(rows.map((row) => row.team))).sort()], [rows])
+  const schemes = useMemo(() => ['ALL', ...Array.from(new Set(rows.map((row) => {
+    if (row.shift_pattern === '4W2O') return 'B'
+    return 'A'
+  }))).sort()], [rows])
+  const patterns = useMemo(() => ['ALL', ...Array.from(new Set(rows.map((row) => row.shift_pattern))).sort()], [rows])
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (teamFilter !== 'ALL' && row.team !== teamFilter) return false
+      const inferredScheme = row.shift_pattern === '4W2O' ? 'B' : 'A'
+      if (schemeFilter !== 'ALL' && inferredScheme !== schemeFilter) return false
+      if (patternFilter !== 'ALL' && row.shift_pattern !== patternFilter) return false
+      return true
+    })
+  }, [rows, teamFilter, schemeFilter, patternFilter])
+
+  const selectedVisibleCount = useMemo(
+    () => filteredRows.filter((row) => selectedOfficerIds.has(row.employee_id)).length,
+    [filteredRows, selectedOfficerIds],
+  )
+
   const summaryByDay = useMemo(() => {
-    if (rows.length === 0) return []
+    if (filteredRows.length === 0) return []
     return headers.map((_, dayIndex) => {
       let count = 0
-      for (const row of rows) {
+      for (const row of filteredRows) {
         if (WORKING_SET.has(row.schedule[dayIndex])) count += 1
       }
       return count
     })
-  }, [rows, headers])
+  }, [filteredRows, headers])
 
   return (
     <>
@@ -173,35 +247,80 @@ export default function RosteringEnginePage() {
       </section>
 
       <section className="panel">
+        <div className="toolbar-row roster-toolbar">
+          <label>
+            Team
+            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+              {teams.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label>
+            Scheme
+            <select value={schemeFilter} onChange={(e) => setSchemeFilter(e.target.value)}>
+              {schemes.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label>
+            Shift Pattern
+            <select value={patternFilter} onChange={(e) => setPatternFilter(e.target.value)}>
+              {patterns.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn-ghost" onClick={() => toggleSelectAllVisible(filteredRows)}>
+            {selectedVisibleCount === filteredRows.length && filteredRows.length > 0 ? 'Unselect Visible' : 'Select Visible'}
+          </button>
+          <label>
+            Bulk Status
+            <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
+              {STATUS_OPTIONS.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn-secondary" onClick={() => applyBulkStatus(filteredRows)}>
+            Apply To Selected ({selectedVisibleCount})
+          </button>
+        </div>
+
         <div className="table-wrap">
           <table className="roster-table">
             <thead>
               <tr>
-                <th>Officer</th>
-                <th>Team</th>
-                <th>Pattern</th>
+                <th className="sticky-col sticky-col-1">Select</th>
+                <th className="sticky-col sticky-col-2">Officer</th>
+                <th className="sticky-col sticky-col-3">Team</th>
+                <th className="sticky-col sticky-col-4">Pattern</th>
                 {headers.map((day) => (
                   <th key={day.day}>
                     {day.day}<br />
                     <small style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>{day.weekday}</small>
                   </th>
                 ))}
-                <th>Forecast</th>
+                <th className="sticky-col sticky-col-5">Forecast</th>
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={headers.length + 4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
+                  <td colSpan={headers.length + 6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
                     No roster data loaded. Click Generate Roster above.
                   </td>
                 </tr>
               ) : (
-                rows.map((row, rowIdx) => (
+                filteredRows.map((row) => {
+                  const rowIdx = rows.findIndex((source) => source.employee_id === row.employee_id)
+                  const isSelected = selectedOfficerIds.has(row.employee_id)
+                  const forecast = calculateForecast(row.schedule)
+                  return (
                   <tr key={row.key}>
-                    <td>{row.serial_number}. {row.name} ({row.staff_id})</td>
-                    <td>{row.team}</td>
-                    <td>{row.shift_pattern}</td>
+                    <td className="sticky-col sticky-col-1">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleOfficerSelection(row.employee_id)}
+                      />
+                    </td>
+                    <td className="sticky-col sticky-col-2">{row.serial_number}. {row.name} ({row.staff_id})</td>
+                    <td className="sticky-col sticky-col-3">{row.team}</td>
+                    <td className="sticky-col sticky-col-4">{row.shift_pattern}</td>
                     {row.schedule.map((value, dayIdx) => (
                       <td key={`${row.key}-${dayIdx}`} className={`status-${value.toLowerCase()}`}>
                         {value === 'EMPTY' ? (
@@ -219,17 +338,20 @@ export default function RosteringEnginePage() {
                         )}
                       </td>
                     ))}
-                    <td style={{ fontWeight: 600 }}>{calculateForecast(row.schedule)}</td>
+                    <td className="sticky-col sticky-col-5">
+                      <span className="forecast-badge">{forecast}h</span>
+                    </td>
                   </tr>
-                ))
+                  )
+                })
               )}
-              {rows.length > 0 && (
+              {filteredRows.length > 0 && (
                 <tr className="summary-row">
-                  <td colSpan={3}>Planned Manpower (W + OT1 + OT2)</td>
+                  <td colSpan={4} className="sticky-col sticky-col-summary">Planned Manpower (W + OT1 + OT2)</td>
                   {summaryByDay.map((count, idx) => (
                     <td key={`sum-${idx}`}>{count}</td>
                   ))}
-                  <td>{summaryByDay.reduce((acc, x) => acc + x, 0)}</td>
+                  <td className="sticky-col sticky-col-5">{summaryByDay.reduce((acc, x) => acc + x, 0)}</td>
                 </tr>
               )}
             </tbody>
