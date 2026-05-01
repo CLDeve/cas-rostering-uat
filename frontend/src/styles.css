@@ -276,6 +276,7 @@ body {
   font-weight: 500;
   position: relative;
   transition: background var(--ease), color var(--ease);
+  margin-left: 0;
 }
 .nav-link .nav-icon {
   flex-shrink: 0;
