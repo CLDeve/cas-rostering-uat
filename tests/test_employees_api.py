@@ -148,7 +148,6 @@ def test_upload_employees_from_template() -> None:
         response = client.post(
             "/api/v1/employees/upload",
             files={"file": ("template_filled.xlsx", buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
-            data={"sheet_name": "SAP FEB (AM)"},
         )
 
         list_response = client.get("/api/v1/employees")
@@ -183,7 +182,6 @@ def test_upload_template_missing_required_field_rejected() -> None:
         response = client.post(
             "/api/v1/employees/upload",
             files={"file": ("template_missing_id.xlsx", buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
-            data={"sheet_name": "SAP FEB (AM)"},
         )
 
     assert response.status_code == 400
@@ -211,7 +209,6 @@ def test_upload_template_invalid_gender_rejected() -> None:
         response = client.post(
             "/api/v1/employees/upload",
             files={"file": ("template_invalid_gender.xlsx", buffer.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
-            data={"sheet_name": "SAP FEB (AM)"},
         )
 
     assert response.status_code == 400
@@ -223,7 +220,6 @@ def test_upload_employees() -> None:
         response = client.post(
             "/api/v1/employees/upload",
             files={"file": ("roster.xlsx", make_upload_file(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
-            data={"sheet_name": "SAP FEB (AM)"},
         )
 
         list_response = client.get("/api/v1/employees")
@@ -245,7 +241,6 @@ def test_download_latest_uploaded_file() -> None:
         upload_response = client.post(
             "/api/v1/employees/upload",
             files={"file": ("roster.xlsx", make_upload_file(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
-            data={"sheet_name": "SAP FEB (AM)"},
         )
         assert upload_response.status_code == 200
 

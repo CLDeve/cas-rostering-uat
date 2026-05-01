@@ -67,7 +67,7 @@ Production recommendation:
 - `GET /api/v1/employees/{employee_id}/shift-plan?days=28&start_offset=0`
 - `PUT /api/v1/employees/{employee_id}`
 - `DELETE /api/v1/employees/{employee_id}`
-- `POST /api/v1/employees/upload` (multipart form: `file`, optional `sheet_name`)
+- `POST /api/v1/employees/upload` (multipart form: `file`; worksheet auto-detected)
 - `GET /api/v1/employees/upload-template?sheet_name=SAP%20FEB%20(AM)`
 - `GET /api/v1/employees/upload-files/latest`
 - `GET /api/v1/employees/upload-files/latest/download`

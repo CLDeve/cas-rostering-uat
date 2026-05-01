@@ -34,7 +34,6 @@ export default function EmployeesPage() {
   const [status, setStatus] = useState('Loading employees...')
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
-  const [sheetName, setSheetName] = useState('SAP FEB (AM)')
   const [selectedFile, setSelectedFile] = useState(null)
   const [hasLatestUpload, setHasLatestUpload] = useState(false)
   const [form, setForm] = useState(defaultForm)
@@ -73,8 +72,8 @@ export default function EmployeesPage() {
     }
     setStatus('Uploading file...')
     try {
-      const result = await uploadEmployees(selectedFile, sheetName)
-      setStatus(`Upload completed. Created ${result.created}, updated ${result.updated}.`)
+      const result = await uploadEmployees(selectedFile)
+      setStatus(`Upload completed from "${result.sheet_name}". Created ${result.created}, updated ${result.updated}.`)
       setSelectedFile(null)
       await refreshEmployees()
       await refreshLatestUpload()
@@ -84,7 +83,7 @@ export default function EmployeesPage() {
   }
 
   function onDownloadTemplate() {
-    window.location.href = getDownloadTemplateUrl(sheetName)
+    window.location.href = getDownloadTemplateUrl()
   }
 
   function onDownloadLatest() {
@@ -158,12 +157,6 @@ export default function EmployeesPage() {
     <>
       <section className="panel">
         <div className="toolbar-row">
-          <input
-            value={sheetName}
-            onChange={(e) => setSheetName(e.target.value)}
-            placeholder="Sheet Name"
-            style={{ width: 180 }}
-          />
           <div className="file-picker">
             <input
               id="employees-upload-file"

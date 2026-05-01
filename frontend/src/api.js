@@ -162,13 +162,12 @@ export function createEmployee(payload) {
   })
 }
 
-export function uploadEmployees(file, sheetName) {
+export function uploadEmployees(file) {
   if (USE_MOCK) {
-    return Promise.resolve({ created: 0, updated: 0, sheet_name: sheetName, filename: file?.name || 'mock' })
+    return Promise.resolve({ created: 0, updated: 0, sheet_name: 'Sheet1', filename: file?.name || 'mock' })
   }
   const form = new FormData()
   form.append('file', file)
-  form.append('sheet_name', sheetName)
   return request('/api/v1/employees/upload', {
     method: 'POST',
     body: form,

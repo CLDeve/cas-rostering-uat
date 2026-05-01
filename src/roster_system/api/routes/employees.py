@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, Response
 
 from roster_system.importers import EmployeeImportError, build_employee_upload_template, parse_employee_rows_from_excel
@@ -107,7 +107,6 @@ def delete_employee(
 @router.post("/upload", response_model=EmployeeImportResult)
 async def upload_employees(
     file: UploadFile = File(...),
-    sheet_name: str = Form(default="SAP FEB (AM)"),
     _: object = Depends(require_planner_user),
     service: EmployeeService = Depends(get_employee_service),
 ) -> EmployeeImportResult:
@@ -119,13 +118,13 @@ async def upload_employees(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
 
     try:
-        rows = parse_employee_rows_from_excel(file_bytes=file_bytes, sheet_name=sheet_name)
-        result = service.import_employees(rows=rows, sheet_name=sheet_name)
+        rows, detected_sheet_name = parse_employee_rows_from_excel(file_bytes=file_bytes)
+        result = service.import_employees(rows=rows, sheet_name=detected_sheet_name)
         saved_file = service.save_uploaded_file(
             file_bytes=file_bytes,
             original_filename=file.filename,
             content_type=file.content_type,
-            sheet_name=sheet_name,
+            sheet_name=detected_sheet_name,
         )
         result.upload_file_id = saved_file.id
         result.upload_filename = saved_file.original_filename

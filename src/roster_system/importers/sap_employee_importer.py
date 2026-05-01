@@ -279,17 +279,27 @@ def _extract_rows_from_template_layout(sheet: Worksheet, mapping: dict[str, int]
     return imported
 
 
-def parse_employee_rows_from_excel(file_bytes: bytes, sheet_name: str) -> list[ImportedEmployeeRow]:
+def parse_employee_rows_from_excel(file_bytes: bytes) -> tuple[list[ImportedEmployeeRow], str]:
     try:
         workbook = load_workbook(filename=BytesIO(file_bytes), data_only=True)
     except (OSError, ValueError, TypeError, BadZipFile) as exc:
         raise EmployeeImportError("Unable to read Excel file") from exc
 
-    if sheet_name not in workbook.sheetnames:
-        raise EmployeeImportError(f"Sheet '{sheet_name}' not found")
+    parse_errors: list[str] = []
+    for sheet_name in workbook.sheetnames:
+        sheet = workbook[sheet_name]
+        mapping = _header_mapping(sheet)
+        try:
+            rows = (
+                _extract_rows_from_template_layout(sheet, mapping)
+                if mapping is not None
+                else _extract_rows_from_sap_layout(sheet)
+            )
+            return rows, sheet_name
+        except EmployeeImportError as exc:
+            parse_errors.append(f"{sheet_name}: {exc}")
+            continue
 
-    sheet = workbook[sheet_name]
-    mapping = _header_mapping(sheet)
-    if mapping is not None:
-        return _extract_rows_from_template_layout(sheet, mapping)
-    return _extract_rows_from_sap_layout(sheet)
+    if parse_errors:
+        raise EmployeeImportError("Unable to parse any worksheet. " + " | ".join(parse_errors))
+    raise EmployeeImportError("Excel file has no worksheets")
