@@ -1,9 +1,9 @@
 from datetime import date
+from http.client import HTTPSConnection, HTTPException as HttpClientException
 import json
 from typing import Any
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -52,20 +52,34 @@ def list_door_4_departure_flights(
     if flightno and flightno.strip():
         params["flightno"] = flightno.strip()
 
-    url = f"{settings.cas_flights_base_url}?{urlencode(params)}"
-    request = Request(url, headers={"x-api-key": settings.cas_flights_api_key, "Accept": "application/json"})
+    parsed_url = urlparse(settings.cas_flights_base_url)
+    path = f"{parsed_url.path}?{urlencode(params)}"
 
     try:
-        with urlopen(request, timeout=settings.cas_flights_timeout_seconds) as response:
-            raw_body = response.read().decode("utf-8")
-    except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace") or exc.reason
-        raise HTTPException(status_code=exc.code, detail=detail) from exc
-    except URLError as exc:
+        connection = HTTPSConnection(parsed_url.netloc, timeout=settings.cas_flights_timeout_seconds)
+        connection.request(
+            "GET",
+            path,
+            headers={"x-api-key": settings.cas_flights_api_key, "Accept": "application/json"},
+        )
+        response = connection.getresponse()
+        raw_body = response.read().decode("utf-8")
+    except OSError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Unable to reach CAS flight API: {exc.reason}",
+            detail=f"Unable to reach CAS flight API: {exc}",
         ) from exc
+    except HttpClientException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"CAS flight API request failed: {exc}",
+        ) from exc
+    finally:
+        if "connection" in locals():
+            connection.close()
+
+    if response.status >= 400:
+        raise HTTPException(status_code=response.status, detail=raw_body or response.reason)
 
     try:
         return json.loads(raw_body)

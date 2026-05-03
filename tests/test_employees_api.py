@@ -558,23 +558,30 @@ def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
     captured = {}
 
     class FakeResponse:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
+        status = 200
+        reason = "OK"
 
         def read(self) -> bytes:
             return b'[{"flightno":"3U3910","gate":"D4"}]'
 
-    def fake_urlopen(request, timeout):
-        captured["url"] = request.full_url
-        captured["api_key"] = request.headers.get("X-api-key")
-        captured["accept"] = request.headers.get("Accept")
-        captured["timeout"] = timeout
-        return FakeResponse()
+    class FakeConnection:
+        def __init__(self, host, timeout):
+            captured["host"] = host
+            captured["timeout"] = timeout
 
-    monkeypatch.setattr(deployment_routes, "urlopen", fake_urlopen)
+        def request(self, method, path, headers):
+            captured["method"] = method
+            captured["path"] = path
+            captured["api_key"] = headers.get("x-api-key")
+            captured["accept"] = headers.get("Accept")
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            captured["closed"] = True
+
+    monkeypatch.setattr(deployment_routes, "HTTPSConnection", FakeConnection)
 
     with TestClient(app) as client:
         response = client.get(
@@ -584,8 +591,9 @@ def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json() == [{"flightno": "3U3910", "gate": "D4"}]
-    assert "tixdate=2026-01-17" in captured["url"]
-    assert "flightno=3U3910" in captured["url"]
+    assert captured["method"] == "GET"
+    assert "tixdate=2026-01-17" in captured["path"]
+    assert "flightno=3U3910" in captured["path"]
     assert captured["api_key"] == "O9rLzAI7U16zbQrZksSne7RJ0C4cZGQv862CXEB4"
     assert captured["accept"] == "application/json"
 
@@ -596,8 +604,8 @@ def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
         )
 
     assert response_without_flight.status_code == 200
-    assert "tixdate=2026-01-17" in captured["url"]
-    assert "flightno=" not in captured["url"]
+    assert "tixdate=2026-01-17" in captured["path"]
+    assert "flightno=" not in captured["path"]
 
 
 def test_dashboard_coverage_daily_and_calendar() -> None:

@@ -166,34 +166,67 @@ function getFlightRows(payload) {
   if (Array.isArray(payload?.data)) return payload.data
   if (Array.isArray(payload?.items)) return payload.items
   if (Array.isArray(payload?.flights)) return payload.flights
+  if (Array.isArray(payload?.flightStatuses)) return payload.flightStatuses
   if (payload && typeof payload === 'object') return [payload]
   return []
 }
 
+function readPath(row, path) {
+  return String(path)
+    .split('.')
+    .reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), row)
+}
+
 function getFlightValue(row, keys) {
   for (const key of keys) {
-    const value = row?.[key]
+    const value = String(key).includes('.') ? readPath(row, key) : row?.[key]
     if (value !== undefined && value !== null && value !== '') return String(value)
   }
   return '—'
+}
+
+function formatFlightTime(value) {
+  if (!value || value === '—') return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 5)
+  return new Intl.DateTimeFormat('en-SG', {
+    timeZone: 'Asia/Singapore',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
 }
 
 function getFlightDisplay(row) {
   const gate = getFlightValue(row, ['gate', 'gateno', 'gateNo', 'boardingGate', 'assignedGate', 'stand', 'bay'])
   const terminal = getFlightValue(row, ['terminal', 'terminalCode', 'terminalNo', 'terminal_no', 'term'])
   const flight = getFlightValue(row, ['flightno', 'flight_no', 'flightNumber', 'flight'])
-  const eta = getFlightValue(row, ['eta', 'estimatedTime', 'estimatedDepartureTime', 'estimatedDeparture', 'etd'])
-  const scheduled = getFlightValue(row, ['sch', 'std', 'scheduledTime', 'scheduledDepartureTime', 'scheduledDeparture'])
+  const eta = getFlightValue(row, [
+    'eta',
+    'estimatedTime',
+    'estimatedDepartureTime',
+    'estimatedDeparture',
+    'etd',
+    'operationalTimes.estimatedGateDeparture.dateLocal',
+  ])
+  const scheduled = getFlightValue(row, [
+    'sch',
+    'std',
+    'scheduledTime',
+    'scheduledDepartureTime',
+    'scheduledDeparture',
+    'operationalTimes.scheduledGateDeparture.dateLocal',
+  ])
   const officer = getFlightValue(row, ['officer', 'officerName', 'assignedOfficer', 'staffName', 'name'])
   const door = getFlightValue(row, ['door', 'doorNo', 'door_no', 'deploymentDoor', 'assignment'])
-  const status = getFlightValue(row, ['status', 'flightStatus', 'remarks'])
+  const status = getFlightValue(row, ['status', 'flightStatus', 'flightstatus', 'remarks'])
 
   return {
     gate,
     terminal: terminal === '—' ? 'T?' : terminal,
     flight,
-    eta,
-    scheduled,
+    eta: formatFlightTime(eta),
+    scheduled: formatFlightTime(scheduled),
     officer: officer === '—' && door === '—' ? 'Unassigned' : `${officer}${door === '—' ? '' : ` • ${door}`}`,
     status: status === '—' ? 'Landed' : status,
   }
