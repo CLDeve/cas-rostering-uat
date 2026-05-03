@@ -150,6 +150,46 @@ Then open from FastAPI:
 - `http://127.0.0.1:8000/app`
 - `http://127.0.0.1:8000/app/employees`
 
+## Versioning and Releases
+
+This repository uses:
+- `VERSION` for semantic version (`MAJOR.MINOR.PATCH`)
+- `BUILD_NUMBER` for monotonically increasing internal build number
+
+Current values:
+
+```bash
+./scripts/version.sh show
+```
+
+Bump semantic version:
+
+```bash
+./scripts/version.sh bump patch   # or minor / major
+```
+
+Bump internal build number:
+
+```bash
+./scripts/version.sh bump-build
+```
+
+Sync `VERSION` into app metadata (`pyproject.toml` and `frontend/package.json`):
+
+```bash
+./scripts/version.sh sync
+```
+
+Recommended release flow:
+
+```bash
+./scripts/version.sh bump patch
+./scripts/version.sh bump-build
+git add VERSION BUILD_NUMBER pyproject.toml frontend/package.json
+git commit -m "release: v$(cat VERSION) build $(cat BUILD_NUMBER)"
+git tag "v$(cat VERSION)"
+```
+
 ## Database Migrations (Alembic)
 
 Create/apply migrations:

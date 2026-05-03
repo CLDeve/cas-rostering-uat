@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { getRosterCalendar, saveRosterCalendar } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const STATUS_OPTIONS = ['W', 'O', 'OT1', 'OT2']
 const HOURS_MAP = { W: 13, O: 0, OT1: 5, OT2: 13, EMPTY: 0 }
@@ -226,19 +227,21 @@ export default function RosteringEnginePage() {
         <div className="toolbar-row">
           <label>
             Year
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-              {yearOptions.map((value) => (
-                <option key={value} value={value}>{value}</option>
-              ))}
-            </select>
+            <SearchDropdown
+              options={yearOptions.map((value) => ({ value: String(value), label: String(value) }))}
+              value={String(year)}
+              onChange={(next) => setYear(Number(next))}
+              searchable={false}
+            />
           </label>
           <label>
             Month
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-              {MONTH_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
+            <SearchDropdown
+              options={MONTH_OPTIONS.map((item) => ({ value: String(item.value), label: item.label }))}
+              value={String(month)}
+              onChange={(next) => setMonth(Number(next))}
+              searchable={false}
+            />
           </label>
           <button type="button" onClick={onGenerate}>Generate Roster</button>
           <button type="button" className="btn-secondary" onClick={onSaveRoster}>Save Roster</button>
@@ -250,30 +253,42 @@ export default function RosteringEnginePage() {
         <div className="toolbar-row roster-toolbar">
           <label>
             Team
-            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-              {teams.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
+            <SearchDropdown
+              options={teams.map((value) => ({ value, label: value }))}
+              value={teamFilter}
+              onChange={setTeamFilter}
+              searchable={false}
+            />
           </label>
           <label>
             Scheme
-            <select value={schemeFilter} onChange={(e) => setSchemeFilter(e.target.value)}>
-              {schemes.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
+            <SearchDropdown
+              options={schemes.map((value) => ({ value, label: value }))}
+              value={schemeFilter}
+              onChange={setSchemeFilter}
+              searchable={false}
+            />
           </label>
           <label>
             Shift Pattern
-            <select value={patternFilter} onChange={(e) => setPatternFilter(e.target.value)}>
-              {patterns.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
+            <SearchDropdown
+              options={patterns.map((value) => ({ value, label: value }))}
+              value={patternFilter}
+              onChange={setPatternFilter}
+              searchable={false}
+            />
           </label>
           <button type="button" className="btn-ghost" onClick={() => toggleSelectAllVisible(filteredRows)}>
             {selectedVisibleCount === filteredRows.length && filteredRows.length > 0 ? 'Unselect Visible' : 'Select Visible'}
           </button>
           <label>
             Bulk Status
-            <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
-              {STATUS_OPTIONS.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
+            <SearchDropdown
+              options={STATUS_OPTIONS.map((value) => ({ value, label: value }))}
+              value={bulkStatus}
+              onChange={setBulkStatus}
+              searchable={false}
+            />
           </label>
           <button type="button" className="btn-secondary" onClick={() => applyBulkStatus(filteredRows)}>
             Apply To Selected ({selectedVisibleCount})

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createUser, listUsers, updateUserStatus } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const initialForm = {
   staff_id: '',
@@ -107,14 +108,16 @@ export default function UserManagementPage() {
             value={form.display_name}
             onChange={(e) => setForm((prev) => ({ ...prev, display_name: e.target.value }))}
           />
-          <select
+          <SearchDropdown
+            options={[
+              { value: 'ADMIN', label: 'ADMIN' },
+              { value: 'PLANNER', label: 'PLANNER' },
+              { value: 'VIEWER', label: 'VIEWER' },
+            ]}
             value={form.role}
-            onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-          >
-            <option value="ADMIN">ADMIN</option>
-            <option value="PLANNER">PLANNER</option>
-            <option value="VIEWER">VIEWER</option>
-          </select>
+            onChange={(next) => setForm((prev) => ({ ...prev, role: next }))}
+            searchable={false}
+          />
           <button type="submit">Create User</button>
         </form>
         {status && <div className={`alert alert-${alertType(status)}`}>{status}</div>}

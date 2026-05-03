@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createDeployment, listDeployments } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
@@ -63,6 +64,36 @@ function hasValidRequirements(requirements) {
       isValidTimeValue(row.next_shift_to)
     )
   })
+}
+
+function toDatePart(datetimeLocal) {
+  return datetimeLocal ? datetimeLocal.slice(0, 10) : ''
+}
+
+function toTimePart(datetimeLocal) {
+  return datetimeLocal ? datetimeLocal.slice(11, 16) : ''
+}
+
+function combineDateTime(datePart, timePart) {
+  if (!datePart || !timePart) return ''
+  return `${datePart}T${timePart}`
+}
+
+function formatDuration(start, end) {
+  if (!start || !end || end <= start) return '—'
+  const minutes = Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 60000)
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${h}h ${String(m).padStart(2, '0')}m`
+}
+
+function formatDateTimeLocal(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
 export default function DeploymentPlanningPage() {
@@ -189,6 +220,8 @@ export default function DeploymentPlanningPage() {
     (mode === 'RECURRING'
       ? days.length > 0
       : adhocStart.length > 0 && adhocEnd.length > 0 && adhocEnd > adhocStart)
+  const adhocWindowInvalid = mode === 'ADHOC' && adhocStart && adhocEnd && adhocEnd <= adhocStart
+  const adhocDurationText = formatDuration(adhocStart, adhocEnd)
 
   return (
     <>
@@ -251,19 +284,81 @@ export default function DeploymentPlanningPage() {
           </div>
 
           {mode === 'ADHOC' && (
-            <div className="form-grid">
-              <input
-                type="datetime-local"
-                title="Adhoc Start"
-                value={adhocStart}
-                onChange={(e) => setAdhocStart(e.target.value)}
-              />
-              <input
-                type="datetime-local"
-                title="Adhoc End"
-                value={adhocEnd}
-                onChange={(e) => setAdhocEnd(e.target.value)}
-              />
+            <div className="adhoc-window">
+              <div className="adhoc-window-head">
+                <strong>Adhoc Window</strong>
+                <span className="muted">All times in SGT (UTC+8)</span>
+              </div>
+              <div className="adhoc-window-grid">
+                <input
+                  type="date"
+                  title="Start Date"
+                  value={toDatePart(adhocStart)}
+                  onChange={(e) => setAdhocStart((prev) => combineDateTime(e.target.value, toTimePart(prev) || '00:00'))}
+                />
+                <input
+                  type="time"
+                  step="900"
+                  title="Start Time"
+                  value={toTimePart(adhocStart)}
+                  onChange={(e) => setAdhocStart((prev) => combineDateTime(toDatePart(prev), e.target.value))}
+                />
+                <input
+                  type="date"
+                  title="End Date"
+                  value={toDatePart(adhocEnd)}
+                  onChange={(e) => setAdhocEnd((prev) => combineDateTime(e.target.value, toTimePart(prev) || '00:00'))}
+                />
+                <input
+                  type="time"
+                  step="900"
+                  title="End Time"
+                  value={toTimePart(adhocEnd)}
+                  onChange={(e) => setAdhocEnd((prev) => combineDateTime(toDatePart(prev), e.target.value))}
+                />
+              </div>
+              <div className="toolbar-row">
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    if (!adhocStart) return
+                    const end = new Date(adhocStart)
+                    end.setHours(end.getHours() + 8)
+                    setAdhocEnd(formatDateTimeLocal(end))
+                  }}
+                >
+                  +8h
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    if (!adhocStart) return
+                    const end = new Date(adhocStart)
+                    end.setHours(end.getHours() + 10)
+                    setAdhocEnd(formatDateTimeLocal(end))
+                  }}
+                >
+                  +10h
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => {
+                    if (!adhocStart) return
+                    const end = new Date(adhocStart)
+                    end.setHours(end.getHours() + 12)
+                    setAdhocEnd(formatDateTimeLocal(end))
+                  }}
+                >
+                  +12h
+                </button>
+                <span className="muted">Duration: {adhocDurationText}</span>
+              </div>
+              {adhocWindowInvalid && (
+                <div className="inline-error">End date/time must be later than start date/time.</div>
+              )}
             </div>
           )}
 
@@ -271,14 +366,16 @@ export default function DeploymentPlanningPage() {
             <div className="req-title">Product Requirements</div>
             {requirements.map((row, index) => (
               <div className="req-row" key={`req-${index}`}>
-                <select
+                <SearchDropdown
+                  options={[
+                    { value: 'APO', label: 'APO' },
+                    { value: 'AVSO', label: 'AVSO' },
+                  ]}
                   value={row.product_type}
-                  onChange={(e) => updateRequirement(index, 'product_type', e.target.value)}
-                >
-                  <option value="">Select Product *</option>
-                  <option value="APO">APO</option>
-                  <option value="AVSO">AVSO</option>
-                </select>
+                  onChange={(next) => updateRequirement(index, 'product_type', next)}
+                  placeholder="Select Product *"
+                  searchable={false}
+                />
                 <input
                   type="number"
                   min="1"

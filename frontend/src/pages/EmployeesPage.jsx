@@ -7,6 +7,7 @@ import {
   listEmployees,
   uploadEmployees,
 } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const defaultForm = {
   team: '',
@@ -31,7 +32,7 @@ function alertType(msg) {
 }
 
 export default function EmployeesPage() {
-  const [status, setStatus] = useState('Loading employees...')
+  const [status, setStatus] = useState('')
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -55,7 +56,6 @@ export default function EmployeesPage() {
       const payload = await listEmployees({ page: 1, page_size: 100 })
       setRows(payload.items || [])
       setTotal(payload.total || 0)
-      setStatus(`Loaded ${payload.total || 0} employee records.`)
     } catch (err) {
       setRows([])
       setTotal(0)
@@ -236,27 +236,31 @@ export default function EmployeesPage() {
             value={form.start_date}
             onChange={(e) => setForm((v) => ({ ...v, start_date: e.target.value }))}
           />
-          <select
+          <SearchDropdown
+            options={[
+              { value: 'MALE', label: 'MALE' },
+              { value: 'FEMALE', label: 'FEMALE' },
+            ]}
             value={form.gender}
-            onChange={(e) => setForm((v) => ({ ...v, gender: e.target.value }))}
-          >
-            <option value="" disabled>Gender</option>
-            <option value="MALE">MALE</option>
-            <option value="FEMALE">FEMALE</option>
-          </select>
+            onChange={(next) => setForm((v) => ({ ...v, gender: next }))}
+            placeholder="Gender"
+            searchable={false}
+          />
           <input
             placeholder="CERT"
             value={form.cert}
             onChange={(e) => setForm((v) => ({ ...v, cert: e.target.value }))}
           />
-          <select
+          <SearchDropdown
+            options={[
+              { value: 'A', label: 'A' },
+              { value: 'B', label: 'B' },
+            ]}
             value={form.scheme}
-            onChange={(e) => setForm((v) => ({ ...v, scheme: e.target.value }))}
-          >
-            <option value="" disabled>Scheme *</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-          </select>
+            onChange={(next) => setForm((v) => ({ ...v, scheme: next }))}
+            placeholder="Scheme *"
+            searchable={false}
+          />
           <details className="multi-select">
             <summary>{form.shift_patterns.length ? form.shift_patterns.join(', ') : 'Shift Pattern *'}</summary>
             <label>

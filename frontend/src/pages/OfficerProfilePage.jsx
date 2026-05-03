@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listDeployments, listEmployees } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const SITE_LISTS_STORAGE_KEY = 'roster_officer_site_lists'
 
@@ -30,7 +31,7 @@ async function fetchAllEmployees() {
 }
 
 export default function OfficerProfilePage() {
-  const [status, setStatus] = useState('Loading officer profiles...')
+  const [status, setStatus] = useState('')
   const [rows, setRows] = useState([])
   const [sites, setSites] = useState([])
   const [query, setQuery] = useState('')
@@ -53,13 +54,12 @@ export default function OfficerProfilePage() {
   }
 
   async function refresh() {
-    setStatus('Loading officer profiles...')
+    setStatus('')
     try {
       const [employees, deploymentSites] = await Promise.all([fetchAllEmployees(), listDeployments()])
       setRows(employees)
       setSites(Array.isArray(deploymentSites) ? deploymentSites : [])
       setSiteListsByOfficer(loadStoredSiteLists())
-      setStatus(`Loaded ${employees.length} officer profiles.`)
     } catch (err) {
       setRows([])
       setStatus(`Unable to load officer profiles: ${err.message}`)
@@ -70,10 +70,17 @@ export default function OfficerProfilePage() {
     refresh()
   }, [])
 
-  const options = useMemo(
-    () => rows.map((row) => `${row.staff_id} - ${row.name}`),
-    [rows],
-  )
+  const options = useMemo(() => {
+    const seen = new Set()
+    const deduped = []
+    for (const row of rows) {
+      const value = `${row.staff_id} - ${row.name}`
+      if (seen.has(value)) continue
+      seen.add(value)
+      deduped.push(value)
+    }
+    return deduped
+  }, [rows])
 
   const selectedRows = useMemo(() => {
     const text = query.trim().toLowerCase()
@@ -88,6 +95,12 @@ export default function OfficerProfilePage() {
     })
   }, [rows, query])
   const selected = selectedRows[0] || null
+
+  const filteredOptions = useMemo(() => {
+    const text = query.trim().toLowerCase()
+    if (!text) return options
+    return options.filter((value) => value.toLowerCase().includes(text))
+  }, [options, query])
   const selectedOfficerKey = selected ? String(selected.staff_id) : ''
   const selectedOfficerLists = selectedOfficerKey
     ? (siteListsByOfficer[selectedOfficerKey] || { whitelist: [], blacklist: [] })
@@ -149,18 +162,15 @@ export default function OfficerProfilePage() {
     <>
       <section className="panel">
         <div className="toolbar-row">
-          <input
-            list="officer-profile-options"
-            placeholder="Select or type Staff ID / Name"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{ minWidth: 320 }}
-          />
-          <datalist id="officer-profile-options">
-            {options.map((option) => (
-              <option key={option} value={option} />
-            ))}
-          </datalist>
+          <div className="officer-picker">
+            <SearchDropdown
+              options={filteredOptions.map((option) => ({ value: option, label: option }))}
+              value={query}
+              onChange={setQuery}
+              placeholder="Select or type Staff ID / Name"
+              minWidth={320}
+            />
+          </div>
           <button type="button" className="btn-secondary" onClick={refresh}>Refresh</button>
         </div>
         {status && <div className={`alert alert-${alertType(status)}`}>{status}</div>}
@@ -194,12 +204,13 @@ export default function OfficerProfilePage() {
               <div className="officer-side-card">
                 <h3>Whitelist</h3>
                 <div className="list-editor-row">
-                  <select value={whitelistSiteId} onChange={(e) => setWhitelistSiteId(e.target.value)}>
-                    <option value="">Select Site</option>
-                    {siteOptions.map((site) => (
-                      <option key={`wl-${site.id}`} value={site.id}>{site.label}</option>
-                    ))}
-                  </select>
+                  <SearchDropdown
+                    options={siteOptions.map((site) => ({ value: site.id, label: site.label }))}
+                    value={whitelistSiteId}
+                    onChange={setWhitelistSiteId}
+                    placeholder="Select Site"
+                    searchable={false}
+                  />
                   <button type="button" className="btn-secondary btn-sm" onClick={() => addToList('whitelist')}>
                     Add
                   </button>
@@ -220,12 +231,13 @@ export default function OfficerProfilePage() {
               <div className="officer-side-card">
                 <h3>Blacklist</h3>
                 <div className="list-editor-row">
-                  <select value={blacklistSiteId} onChange={(e) => setBlacklistSiteId(e.target.value)}>
-                    <option value="">Select Site</option>
-                    {siteOptions.map((site) => (
-                      <option key={`bl-${site.id}`} value={site.id}>{site.label}</option>
-                    ))}
-                  </select>
+                  <SearchDropdown
+                    options={siteOptions.map((site) => ({ value: site.id, label: site.label }))}
+                    value={blacklistSiteId}
+                    onChange={setBlacklistSiteId}
+                    placeholder="Select Site"
+                    searchable={false}
+                  />
                   <button type="button" className="btn-secondary btn-sm" onClick={() => addToList('blacklist')}>
                     Add
                   </button>
