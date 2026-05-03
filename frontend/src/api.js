@@ -21,35 +21,6 @@ const MOCK_KEYS = {
   roster: 'roster_mock_roster',
 }
 
-const DEFAULT_DOOR4_DEPLOYMENT = {
-  site_name: 'Door 4',
-  site_lat: null,
-  site_lng: null,
-  mode: 'RECURRING',
-  deployment_days: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-  adhoc_start_at: null,
-  adhoc_end_at: null,
-  requirements: [
-    {
-      product_type: 'AVSO',
-      required_headcount: 25,
-      reporting_from: '08:00',
-      reporting_to: '16:00',
-      next_shift_from: '16:00',
-      next_shift_to: '00:00',
-    },
-  ],
-}
-
-const MOCK_DOOR4_FLIGHTS = [
-  { terminal: 'T3', gate: 'A12', flightno: 'CI753', eta: '12:36', sch: '12:35', officer: 'Ryan Lim', door: 'D018', status: 'Landed' },
-  { terminal: 'T1', gate: 'C25', flightno: 'CZ353', eta: '12:36', sch: '12:30', officer: 'Samuel Koh', door: 'D019', status: 'Landed' },
-  { terminal: 'T2', gate: 'E22', flightno: 'JX771', eta: '12:38', sch: '12:40', officer: 'Vincent Lee', door: 'D022', status: 'Landed' },
-  { terminal: 'T1', gate: 'D40L', flightno: 'TR471', eta: '12:39', sch: '12:55', officer: 'Benjamin Tan', door: 'D002', status: 'Landed' },
-  { terminal: 'T2', gate: 'F60', flightno: 'SQ935', eta: '12:41', sch: '12:45', officer: 'Kelvin Goh', door: 'D011', status: 'Landed' },
-  { terminal: 'T2', gate: 'F35L', flightno: 'MH603', eta: '12:46', sch: '12:55', officer: 'Ivan Lee', door: 'D009', status: 'Landed' },
-]
-
 function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }
@@ -79,22 +50,6 @@ function writeMock(key, value) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
-function ensureMockDoor4Deployment(rows) {
-  const deployments = Array.isArray(rows) ? rows : []
-  const hasDoor4 = deployments.some((row) => String(row.site_name || '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'door4')
-  if (hasDoor4) return deployments
-
-  const nextId = deployments.length ? Math.max(...deployments.map((row) => Number(row.id) || 0)) + 1 : 1
-  return [
-    ...deployments,
-    {
-      id: nextId,
-      ...DEFAULT_DOOR4_DEPLOYMENT,
-      updated_at: new Date().toISOString(),
-    },
-  ]
-}
-
 function initMock() {
   if (!USE_MOCK) return
   const employees = readMock(MOCK_KEYS.employees, null)
@@ -103,10 +58,7 @@ function initMock() {
   }
   const deployments = readMock(MOCK_KEYS.deployments, null)
   if (!deployments) {
-    writeMock(MOCK_KEYS.deployments, ensureMockDoor4Deployment([]))
-  } else {
-    const nextDeployments = ensureMockDoor4Deployment(deployments)
-    if (nextDeployments.length !== deployments.length) writeMock(MOCK_KEYS.deployments, nextDeployments)
+    writeMock(MOCK_KEYS.deployments, [])
   }
   const trainings = readMock(MOCK_KEYS.trainings, null)
   if (!trainings) {
@@ -391,13 +343,6 @@ export function getDeploymentAssignments(deploymentDate) {
 }
 
 export function getDoor4DepartureFlights(tixdate, flightno = '') {
-  if (USE_MOCK) {
-    const q = String(flightno || '').trim().toLowerCase()
-    const rows = q
-      ? MOCK_DOOR4_FLIGHTS.filter((row) => String(row.flightno || '').toLowerCase().includes(q))
-      : MOCK_DOOR4_FLIGHTS
-    return Promise.resolve(rows.map((row) => ({ ...row, tixdate })))
-  }
   const query = buildQuery({ tixdate, flightno })
   return request(`/api/v1/deployments/door-4/flights?${query}`)
 }
