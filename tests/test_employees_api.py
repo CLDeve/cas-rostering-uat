@@ -5,6 +5,7 @@ from openpyxl import Workbook, load_workbook
 from fastapi.testclient import TestClient
 
 from roster_system.main import app
+from roster_system.api.routes import deployments as deployment_routes
 
 
 def employee_payload(staff_id: str = "148928") -> dict:
@@ -551,6 +552,52 @@ def test_replace_deployment_assignments_invalid_employee_rejected() -> None:
 
     assert replace_response.status_code == 422
     assert "employee_id" in replace_response.json()["detail"]
+
+
+def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self) -> bytes:
+            return b'[{"flightno":"3U3910","gate":"D4"}]'
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["api_key"] = request.headers.get("X-api-key")
+        captured["accept"] = request.headers.get("Accept")
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(deployment_routes, "urlopen", fake_urlopen)
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/deployments/door-4/flights",
+            params={"tixdate": "2026-01-17", "flightno": "3U3910"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == [{"flightno": "3U3910", "gate": "D4"}]
+    assert "tixdate=2026-01-17" in captured["url"]
+    assert "flightno=3U3910" in captured["url"]
+    assert captured["api_key"] == "O9rLzAI7U16zbQrZksSne7RJ0C4cZGQv862CXEB4"
+    assert captured["accept"] == "application/json"
+
+    with TestClient(app) as client:
+        response_without_flight = client.get(
+            "/api/v1/deployments/door-4/flights",
+            params={"tixdate": "2026-01-17"},
+        )
+
+    assert response_without_flight.status_code == 200
+    assert "tixdate=2026-01-17" in captured["url"]
+    assert "flightno=" not in captured["url"]
 
 
 def test_dashboard_coverage_daily_and_calendar() -> None:

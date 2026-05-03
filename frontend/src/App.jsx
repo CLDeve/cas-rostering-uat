@@ -6,6 +6,7 @@ import TrainingPage from './pages/TrainingPage'
 import RosteringEnginePage from './pages/RosteringEnginePage'
 import DeploymentPlanningPage from './pages/DeploymentPlanningPage'
 import DeploymentBoardPage from './pages/DeploymentBoardPage'
+import DeploymentMapPage from './pages/DeploymentMapPage'
 import RulesPage from './pages/RulesPage'
 import DashboardPage from './pages/DashboardPage'
 import UserManagementPage from './pages/UserManagementPage'
@@ -32,9 +33,15 @@ export default function App() {
         <Route path="/employees" element={<EmployeesPage />} />
         <Route path="/officer-profile" element={<OfficerProfilePage />} />
         <Route path="/rostering-engine" element={<RosteringEnginePage />} />
-        <Route path="/deployment-planning" element={<Navigate to="/static-deployment-planning" replace />} />
-        <Route path="/static-deployment-planning" element={<DeploymentPlanningPage />} />
+        <Route path="/deployment-planning" element={<Navigate to="/static-deployment-config" replace />} />
+        <Route path="/static-deployment-planning" element={<Navigate to="/static-deployment-config" replace />} />
+        <Route path="/static-deployment-config" element={<DeploymentPlanningPage />} />
+        <Route path="/deployment-door-4" element={<Navigate to="/deployment-board/door-4" replace />} />
+        <Route path="/deployment-sq-ramp" element={<Navigate to="/deployment-board/sq-ramp" replace />} />
+        <Route path="/deployment-preboard" element={<Navigate to="/deployment-board/preboard" replace />} />
         <Route path="/deployment-board" element={<DeploymentBoardPage />} />
+        <Route path="/deployment-board/:scopeKey" element={<DeploymentBoardPage />} />
+        <Route path="/deployment-map" element={<DeploymentMapPage />} />
         <Route path="/training-hub" element={<Navigate to="/course-scheduling" replace />} />
         <Route path="/training" element={<Navigate to="/course-scheduling" replace />} />
         <Route path="/training/course-creation" element={<Navigate to="/course-creation" replace />} />

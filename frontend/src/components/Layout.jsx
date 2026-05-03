@@ -1,10 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import PageLoader from './PageLoader'
 import {
   Users,
   CalendarDays,
   Building2,
   LayoutGrid,
+  Map,
   GraduationCap,
   FileText,
   Sun,
@@ -24,16 +26,28 @@ const navItems = [
     subtitle: 'Daily manpower coverage across active deployment sites.',
   },
   {
-    to: '/employees',
+    to: '/employees-group',
     label: 'Employees',
     icon: Users,
+    subtitle: 'Employee creation and profile operations.',
+    isGroup: true,
+    groupKey: 'employees',
+  },
+  {
+    to: '/employees',
+    label: 'Create Employee',
+    icon: Users,
     subtitle: 'Manage officers, uploads, and inline creation.',
+    subnav: true,
+    groupKey: 'employees',
   },
   {
     to: '/officer-profile',
     label: 'Officer Profile',
     icon: IdCard,
     subtitle: 'View and manage detailed officer profile information.',
+    subnav: true,
+    groupKey: 'employees',
   },
   {
     to: '/rostering-engine',
@@ -50,10 +64,34 @@ const navItems = [
     groupKey: 'deployment',
   },
   {
-    to: '/static-deployment-planning',
-    label: 'Static Deployment Planning',
+    to: '/static-deployment-config',
+    label: 'Static Deployment Config',
     icon: Building2,
     subtitle: 'Create recurring and adhoc site deployment requirements.',
+    subnav: true,
+    groupKey: 'deployment',
+  },
+  {
+    to: '/deployment-board/door-4',
+    label: 'Door 4',
+    icon: LayoutGrid,
+    subtitle: 'Open deployment board for Door 4.',
+    subnav: true,
+    groupKey: 'deployment',
+  },
+  {
+    to: '/deployment-board/sq-ramp',
+    label: 'SQ Ramp',
+    icon: LayoutGrid,
+    subtitle: 'Open deployment board for SQ Ramp.',
+    subnav: true,
+    groupKey: 'deployment',
+  },
+  {
+    to: '/deployment-board/preboard',
+    label: 'Preboard',
+    icon: LayoutGrid,
+    subtitle: 'Open deployment board for Preboard.',
     subnav: true,
     groupKey: 'deployment',
   },
@@ -62,6 +100,14 @@ const navItems = [
     label: 'Deployment Board',
     icon: LayoutGrid,
     subtitle: 'Assign available officers to site slots by date.',
+    subnav: true,
+    groupKey: 'deployment',
+  },
+  {
+    to: '/deployment-map',
+    label: 'Map',
+    icon: Map,
+    subtitle: 'View deployment sites using saved coordinates.',
     subnav: true,
     groupKey: 'deployment',
   },
@@ -104,6 +150,12 @@ const navItems = [
 ]
 
 function resolveMeta(pathname) {
+  if (pathname.startsWith('/employees-group')) {
+    return {
+      label: 'Employees',
+      subtitle: 'Employee creation and profile operations.',
+    }
+  }
   if (pathname.startsWith('/deployment-group')) {
     return {
       label: 'Deployment',
@@ -132,6 +184,8 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
   const [apiTokenInput, setApiTokenInput] = useState('')
   const [trainingExpanded, setTrainingExpanded] = useState(true)
   const [deploymentExpanded, setDeploymentExpanded] = useState(true)
+  const [employeesExpanded, setEmployeesExpanded] = useState(true)
+  const [routeLoading, setRouteLoading] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('roster_sidebar_open')
@@ -144,6 +198,8 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
     if (trainingState === '0') setTrainingExpanded(false)
     const deploymentState = localStorage.getItem('roster_deployment_expanded')
     if (deploymentState === '0') setDeploymentExpanded(false)
+    const employeesState = localStorage.getItem('roster_employees_expanded')
+    if (employeesState === '0') setEmployeesExpanded(false)
   }, [])
 
   useEffect(() => {
@@ -157,6 +213,16 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
   useEffect(() => {
     localStorage.setItem('roster_deployment_expanded', deploymentExpanded ? '1' : '0')
   }, [deploymentExpanded])
+
+  useEffect(() => {
+    localStorage.setItem('roster_employees_expanded', employeesExpanded ? '1' : '0')
+  }, [employeesExpanded])
+
+  useEffect(() => {
+    setRouteLoading(true)
+    const timer = window.setTimeout(() => setRouteLoading(false), 350)
+    return () => window.clearTimeout(timer)
+  }, [location.pathname])
 
   return (
     <div className={`app-shell${darkMode ? ' dark' : ''}${sidebarOpen ? '' : ' sidebar-collapsed'}`}>
@@ -193,6 +259,7 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
           {navItems
             .filter((item) => {
               if (!item.subnav) return true
+              if (item.groupKey === 'employees') return employeesExpanded
               if (item.groupKey === 'training') return trainingExpanded
               if (item.groupKey === 'deployment') return deploymentExpanded
               return true
@@ -202,11 +269,14 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
                 <div
                   key={to}
                   className={`nav-link${
-                    (groupKey === 'training' && trainingExpanded) || (groupKey === 'deployment' && deploymentExpanded)
+                    (groupKey === 'employees' && employeesExpanded) ||
+                    (groupKey === 'training' && trainingExpanded) ||
+                    (groupKey === 'deployment' && deploymentExpanded)
                       ? ' expanded'
                       : ''
                   }`}
                   onClick={() => {
+                    if (groupKey === 'employees') setEmployeesExpanded((v) => !v)
                     if (groupKey === 'training') setTrainingExpanded((v) => !v)
                     if (groupKey === 'deployment') setDeploymentExpanded((v) => !v)
                   }}
@@ -280,6 +350,7 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
       </aside>
 
       <main className="page">
+        {routeLoading && <PageLoader text="Loading page..." />}
         <header className="page-header">
           <div>
             <h1>{meta.label}</h1>

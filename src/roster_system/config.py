@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     security_referrer_policy: str = "strict-origin-when-cross-origin"
     security_permissions_policy: str = "geolocation=(), microphone=(), camera=()"
     rate_limit_per_minute: int = 180
+    cas_flights_base_url: str = "https://api.cas.certispsb.net/api-ext/v1/flights/departure/boardingpass-apk"
+    cas_flights_api_key: str = "O9rLzAI7U16zbQrZksSne7RJ0C4cZGQv862CXEB4"
+    cas_flights_timeout_seconds: float = 15.0
 
     def validate_production_safety(self) -> None:
         if self.app_env.lower() != "production":

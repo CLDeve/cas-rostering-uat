@@ -342,6 +342,11 @@ export function getDeploymentAssignments(deploymentDate) {
   return request(`/api/v1/deployments/assignments?${query}`)
 }
 
+export function getDoor4DepartureFlights(tixdate, flightno = '') {
+  const query = buildQuery({ tixdate, flightno })
+  return request(`/api/v1/deployments/door-4/flights?${query}`)
+}
+
 export function replaceDeploymentAssignments(payload) {
   if (USE_MOCK) {
     const rows = readMock(MOCK_KEYS.assignments, {})

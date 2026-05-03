@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import {
+  getDoor4DepartureFlights,
   getDeploymentAssignments,
   listDeployments,
   listEmployees,
   replaceDeploymentAssignments,
 } from '../api'
+import SearchDropdown from '../components/SearchDropdown'
 
 const DEFAULT_SLOT_CAPACITY = 25
+const DEPLOYMENT_SCOPES = {
+  all: { label: 'Deployment Board', aliases: [], locked: false },
+  'door-4': { label: 'Door 4', aliases: ['door 4', 'door4'], locked: true },
+  'sq-ramp': { label: 'SQ Ramp', aliases: ['sq ramp', 'sqramp'], locked: true },
+  preboard: { label: 'Preboard', aliases: ['preboard', 'pre-board'], locked: true },
+}
 
 function getSiteSlotCapacity(site) {
   const requirements = Array.isArray(site?.requirements) ? site.requirements : []
@@ -148,7 +157,52 @@ function toAssignmentRows(assignmentsBySite) {
   return rows
 }
 
+function normalizeSiteName(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function getFlightRows(payload) {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.flights)) return payload.flights
+  if (payload && typeof payload === 'object') return [payload]
+  return []
+}
+
+function getFlightValue(row, keys) {
+  for (const key of keys) {
+    const value = row?.[key]
+    if (value !== undefined && value !== null && value !== '') return String(value)
+  }
+  return '—'
+}
+
+function getFlightDisplay(row) {
+  const gate = getFlightValue(row, ['gate', 'gateno', 'gateNo', 'boardingGate', 'assignedGate', 'stand', 'bay'])
+  const terminal = getFlightValue(row, ['terminal', 'terminalCode', 'terminalNo', 'terminal_no', 'term'])
+  const flight = getFlightValue(row, ['flightno', 'flight_no', 'flightNumber', 'flight'])
+  const eta = getFlightValue(row, ['eta', 'estimatedTime', 'estimatedDepartureTime', 'estimatedDeparture', 'etd'])
+  const scheduled = getFlightValue(row, ['sch', 'std', 'scheduledTime', 'scheduledDepartureTime', 'scheduledDeparture'])
+  const officer = getFlightValue(row, ['officer', 'officerName', 'assignedOfficer', 'staffName', 'name'])
+  const door = getFlightValue(row, ['door', 'doorNo', 'door_no', 'deploymentDoor', 'assignment'])
+  const status = getFlightValue(row, ['status', 'flightStatus', 'remarks'])
+
+  return {
+    gate,
+    terminal: terminal === '—' ? 'T?' : terminal,
+    flight,
+    eta,
+    scheduled,
+    officer: officer === '—' && door === '—' ? 'Unassigned' : `${officer}${door === '—' ? '' : ` • ${door}`}`,
+    status: status === '—' ? 'Landed' : status,
+  }
+}
+
 export default function DeploymentBoardPage() {
+  const params = useParams()
+  const routeScopeKey = String(params.scopeKey || 'all').toLowerCase()
+  const scope = DEPLOYMENT_SCOPES[routeScopeKey] || DEPLOYMENT_SCOPES.all
   const [status, setStatus] = useState('Loading deployment board...')
   const [selectedDate, setSelectedDate] = useState(todaySgIso())
   const [allSites, setAllSites] = useState([])
@@ -160,6 +214,10 @@ export default function DeploymentBoardPage() {
   const [siteSearch, setSiteSearch] = useState('')
   const [gapOnly, setGapOnly] = useState(false)
   const [selectedSiteId, setSelectedSiteId] = useState('')
+  const [door4FlightNo, setDoor4FlightNo] = useState('')
+  const [door4Flights, setDoor4Flights] = useState([])
+  const [door4FlightStatus, setDoor4FlightStatus] = useState('')
+  const [isLoadingDoor4Flights, setIsLoadingDoor4Flights] = useState(false)
 
   const activeSites = useMemo(
     () => filterSitesForDate(allSites, selectedDate),
@@ -184,7 +242,7 @@ export default function DeploymentBoardPage() {
     })
   }, [activeSites, assignmentsBySite])
 
-  const filteredSiteRows = useMemo(() => {
+  const unscopedFilteredSiteRows = useMemo(() => {
     const q = siteSearch.trim().toLowerCase()
     return siteRows
       .filter((row) => {
@@ -194,6 +252,19 @@ export default function DeploymentBoardPage() {
       })
       .sort((a, b) => b.gap - a.gap || a.site.site_name.localeCompare(b.site.site_name))
   }, [siteRows, siteSearch, gapOnly])
+
+  const scopedSiteId = useMemo(() => {
+    if (!scope.locked) return ''
+    const aliasSet = new Set(scope.aliases.map(normalizeSiteName))
+    const matched = activeSites.find((site) => aliasSet.has(normalizeSiteName(site.site_name)))
+    return matched ? String(matched.id) : ''
+  }, [scope, activeSites])
+
+  const filteredSiteRows = useMemo(() => {
+    if (!scope.locked) return unscopedFilteredSiteRows
+    if (!scopedSiteId) return []
+    return siteRows.filter((row) => String(row.site.id) === scopedSiteId)
+  }, [scope.locked, unscopedFilteredSiteRows, scopedSiteId, siteRows])
 
   const selectedSiteRow = useMemo(
     () => filteredSiteRows.find((row) => String(row.site.id) === String(selectedSiteId)) || null,
@@ -214,6 +285,22 @@ export default function DeploymentBoardPage() {
       setOfficerToSite({})
       setDirty(false)
       setStatus(`Unable to load deployment assignments: ${err.message}`)
+    }
+  }
+
+  async function loadDoor4Flights() {
+    setIsLoadingDoor4Flights(true)
+    setDoor4FlightStatus('Loading Door 4 flights...')
+    try {
+      const payload = await getDoor4DepartureFlights(selectedDate, door4FlightNo)
+      const rows = getFlightRows(payload)
+      setDoor4Flights(rows)
+      setDoor4FlightStatus(`Loaded ${rows.length} Door 4 flight record${rows.length === 1 ? '' : 's'} for ${selectedDate}.`)
+    } catch (err) {
+      setDoor4Flights([])
+      setDoor4FlightStatus(`Unable to load Door 4 flights: ${err.message}`)
+    } finally {
+      setIsLoadingDoor4Flights(false)
     }
   }
 
@@ -242,6 +329,22 @@ export default function DeploymentBoardPage() {
     if (!allSites.length) return
     loadAssignmentsForDate(selectedDate)
   }, [selectedDate])
+
+  useEffect(() => {
+    if (!scope.locked) return
+    if (!scopedSiteId) {
+      setSelectedSiteId('')
+      setStatus(`Configured site for ${scope.label} is not active on ${selectedDate}.`)
+      return
+    }
+    setSelectedSiteId(scopedSiteId)
+    setSiteSearch('')
+  }, [scope, scopedSiteId, selectedDate])
+
+  useEffect(() => {
+    if (routeScopeKey !== 'door-4') return
+    loadDoor4Flights()
+  }, [routeScopeKey, selectedDate])
 
   function removeOfficerAssignment(officerId, assignments, officerIndex) {
     const previousSiteId = officerIndex[officerId]
@@ -374,31 +477,102 @@ export default function DeploymentBoardPage() {
           <button type="button" onClick={saveAssignments} disabled={!dirty || isSaving}>
             {isSaving ? 'Saving...' : 'Save Assignments'}
           </button>
-          <input
-            placeholder="Search site"
-            value={siteSearch}
-            onChange={(e) => setSiteSearch(e.target.value)}
-            style={{ minWidth: 180 }}
-          />
+          {!scope.locked && (
+            <input
+              placeholder="Search site"
+              value={siteSearch}
+              onChange={(e) => setSiteSearch(e.target.value)}
+              style={{ minWidth: 180 }}
+            />
+          )}
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <input type="checkbox" checked={gapOnly} onChange={(e) => setGapOnly(e.target.checked)} />
             Gap only
           </label>
-          <select
-            value={selectedSiteId}
-            onChange={(e) => setSelectedSiteId(e.target.value)}
-            style={{ minWidth: 260 }}
-          >
-            <option value="">Select Site *</option>
-            {activeSites.map((site) => (
-              <option key={`site-pick-${site.id}`} value={String(site.id)}>
-                {site.site_name}
-              </option>
-            ))}
-          </select>
+          {!scope.locked && (
+            <SearchDropdown
+              options={activeSites.map((site) => ({ value: String(site.id), label: site.site_name }))}
+              value={selectedSiteId}
+              onChange={setSelectedSiteId}
+              placeholder="Select Site *"
+              searchable={false}
+              minWidth={260}
+            />
+          )}
+          {routeScopeKey === 'door-4' && (
+            <>
+              <input
+                placeholder="Flight No. (optional)"
+                value={door4FlightNo}
+                onChange={(e) => setDoor4FlightNo(e.target.value)}
+                style={{ minWidth: 180 }}
+              />
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={loadDoor4Flights}
+                disabled={isLoadingDoor4Flights}
+              >
+                {isLoadingDoor4Flights ? 'Loading Flights...' : 'Load Flights'}
+              </button>
+            </>
+          )}
         </div>
+        {scope.locked && (
+          <div className="status">
+            Scope: <strong>{scope.label}</strong>
+          </div>
+        )}
         {status && <div className={`alert alert-${alertType(status)}`}>{status}</div>}
+        {routeScopeKey === 'door-4' && door4FlightStatus && (
+          <div className={`alert alert-${alertType(door4FlightStatus)}`}>{door4FlightStatus}</div>
+        )}
       </section>
+
+      {routeScopeKey === 'door-4' && (
+        <section className="panel door4-flight-board">
+          <div className="door4-board-header">
+            <h2>Door 4 Departure Flights</h2>
+            <span>{selectedDate}</span>
+          </div>
+          {door4Flights.length === 0 ? (
+            <div className="door4-empty">No flight records loaded.</div>
+          ) : (
+            <div className="door4-flight-list">
+              {door4Flights.map((flight, index) => {
+                const item = getFlightDisplay(flight)
+                return (
+                  <article
+                    key={`${item.flight}-${item.gate}-${index}`}
+                    className={`door4-flight-row${index === 0 ? ' is-highlighted' : ''}`}
+                  >
+                    <span className="door4-terminal-pill">{item.terminal}</span>
+                    <div className="door4-gate-block">
+                      <strong>{item.gate}</strong>
+                      <span>{item.flight}</span>
+                    </div>
+                    <span className="door4-status-pill">{item.status}</span>
+                    <div className="door4-time-pair">
+                      <div>
+                        <span>ETA</span>
+                        <strong>{item.eta}</strong>
+                      </div>
+                      <div>
+                        <span>SCH</span>
+                        <strong>{item.scheduled}</strong>
+                      </div>
+                    </div>
+                    <strong className="door4-officer">{item.officer}</strong>
+                    <span className="door4-chip door4-chip-warning">Late Not Allowed</span>
+                    <span className="door4-chip door4-chip-progress">In Progress</span>
+                    <span className="door4-chip door4-chip-committed">Committed</span>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {!selectedSiteId ? (
         <section className="panel">
