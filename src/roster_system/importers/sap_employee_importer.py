@@ -15,6 +15,8 @@ from roster_system.schemas import Gender, ShiftPattern
 class ImportedEmployeeRow:
     serial_number: int | None
     team: str
+    deployment_area: str
+    terminal: str | None
     rank: str
     staff_id: str
     name: str
@@ -34,20 +36,24 @@ class EmployeeImportError(Exception):
 _HEADER_ALIASES: dict[str, set[str]] = {
     "serial_number": {"sn", "sno", "serialnumber", "serialno"},
     "team": {"team"},
+    "deployment_area": {"deploymentarea", "deployment", "area"},
+    "terminal": {"terminal", "term"},
     "rank": {"rank"},
-    "staff_id": {"id", "staffid", "employeeid"},
+    "staff_id": {"id", "staffid", "staff", "employeeid"},
     "name": {"name"},
     "start_date": {"startdate", "officerstartdate"},
     "gender": {"gender", "sex"},
     "cert": {"cert"},
     "scheme": {"scheme"},
     "shift_pattern": {"shiftpattern", "shift"},
-    "contractual_hours": {"contractualhours", "contracthours"},
+    "contractual_hours": {"contractualhours", "contracthours", "contractualhr", "contractualhrs"},
     "forecast_hours": {"forecasthours"},
 }
 
 _REQUIRED_TEMPLATE_FIELDS = {
     "team",
+    "deployment_area",
+    "terminal",
     "rank",
     "staff_id",
     "name",
@@ -145,6 +151,19 @@ def _parse_gender(value: object) -> Gender:
     raise EmployeeImportError(f"Invalid gender: {raw}. Allowed: MALE/FEMALE/OTHER/UNKNOWN")
 
 
+def _parse_terminal(value: object) -> str:
+    raw = _as_clean_str(value).upper().replace(" ", "")
+    if raw in {"1", "T1"}:
+        return "T1"
+    if raw in {"2", "T2"}:
+        return "T2"
+    if raw in {"3", "T3"}:
+        return "T3"
+    if raw in {"4", "T4"}:
+        return "T4"
+    raise EmployeeImportError(f"Invalid terminal: {value}. Allowed: T1/T2/T3/T4")
+
+
 def _extract_rows_from_sap_layout(sheet: Worksheet) -> list[ImportedEmployeeRow]:
     imported: list[ImportedEmployeeRow] = []
     last_team = ""
@@ -187,6 +206,8 @@ def _extract_rows_from_sap_layout(sheet: Worksheet) -> list[ImportedEmployeeRow]
             ImportedEmployeeRow(
                 serial_number=_to_int(serial_raw, "serial_number") if serial_raw not in (None, "") else None,
                 team=last_team,
+                deployment_area="UNASSIGNED",
+                terminal=None,
                 rank=rank,
                 staff_id=staff_id,
                 name=name,
@@ -236,6 +257,12 @@ def _extract_rows_from_template_layout(sheet: Worksheet, mapping: dict[str, int]
             continue
 
         team = _require_non_blank(sheet.cell(row=row_num, column=mapping["team"]).value, "team", row_num)
+        deployment_area = _require_non_blank(
+            sheet.cell(row=row_num, column=mapping["deployment_area"]).value,
+            "deployment_area",
+            row_num,
+        )
+        terminal = _parse_terminal(sheet.cell(row=row_num, column=mapping["terminal"]).value)
         rank = _require_non_blank(sheet.cell(row=row_num, column=mapping["rank"]).value, "rank", row_num)
         staff_id = _require_non_blank(sheet.cell(row=row_num, column=mapping["staff_id"]).value, "staff_id", row_num)
         name = _require_non_blank(sheet.cell(row=row_num, column=mapping["name"]).value, "name", row_num)
@@ -256,6 +283,8 @@ def _extract_rows_from_template_layout(sheet: Worksheet, mapping: dict[str, int]
                     else None
                 ),
                 team=team,
+                deployment_area=deployment_area,
+                terminal=terminal,
                 rank=rank,
                 staff_id=staff_id,
                 name=name,

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from roster_system.api.dependencies import get_user_service, require_admin_user
+from roster_system.domains.users.services import UserConflictError, UserNotFoundError, UserService
 from roster_system.schemas import UserAccountCreate, UserAccountRead, UserAccountStatusUpdate
-from roster_system.services.user_service import UserConflictError, UserNotFoundError, UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 

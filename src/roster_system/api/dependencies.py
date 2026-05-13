@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 
 from roster_system.api.security import AuthIdentity, require_roles
 from roster_system.db import get_db_session
-from roster_system.repositories.deployment_repository import DeploymentRepository
-from roster_system.repositories.employee_repository import EmployeeRepository
-from roster_system.repositories.training_repository import TrainingRepository
-from roster_system.repositories.user_repository import UserRepository
-from roster_system.services.deployment_service import DeploymentService
-from roster_system.services.employee_service import EmployeeService
-from roster_system.services.training_service import TrainingService
-from roster_system.services.user_service import UserService
+from roster_system.domains.deployment.repositories import DeploymentRepository
+from roster_system.domains.deployment.services import DeploymentService
+from roster_system.domains.rostering.repositories import EmployeeRepository
+from roster_system.domains.rostering.services import EmployeeService
+from roster_system.domains.training.repositories import TrainingRepository
+from roster_system.domains.training.services import TrainingService
+from roster_system.domains.users.repositories import UserRepository
+from roster_system.domains.users.services import UserService
 from roster_system.schemas import UserRole
 
 

@@ -19,6 +19,13 @@ class Gender(str, Enum):
     UNKNOWN = "UNKNOWN"
 
 
+class Terminal(str, Enum):
+    T1 = "T1"
+    T2 = "T2"
+    T3 = "T3"
+    T4 = "T4"
+
+
 class ProductType(str, Enum):
     APO = "APO"
     AVSO = "AVSO"
@@ -48,11 +55,13 @@ class Weekday(str, Enum):
 class EmployeeBase(BaseModel):
     serial_number: int | None = Field(default=None, ge=1)
     team: str = Field(..., min_length=1, max_length=32)
+    deployment_area: str = Field(default="UNASSIGNED", min_length=1, max_length=32)
     rank: str = Field(..., min_length=1, max_length=32)
     staff_id: str = Field(..., min_length=1, max_length=32)
     name: str = Field(..., min_length=1, max_length=128)
     start_date: date | None = None
     gender: Gender = Field(default=Gender.UNKNOWN)
+    terminal: Terminal | None = None
     cert: str | None = Field(default=None, max_length=64)
     scheme: str = Field(..., min_length=1, max_length=8)
     shift_pattern: ShiftPattern = Field(default=ShiftPattern.WORK_5_OFF_1)
@@ -60,7 +69,7 @@ class EmployeeBase(BaseModel):
     contractual_hours: Decimal = Field(..., ge=0, decimal_places=2)
     forecast_hours: Decimal | None = Field(default=None, ge=0, decimal_places=2)
 
-    @field_validator("team", "rank", "staff_id", "name", "scheme")
+    @field_validator("team", "deployment_area", "rank", "staff_id", "name", "scheme")
     @classmethod
     def trim_mandatory(cls, value: str) -> str:
         cleaned = value.strip()
@@ -75,6 +84,7 @@ class EmployeeBase(BaseModel):
             return None
         cleaned = value.strip()
         return cleaned or None
+
 
     @model_validator(mode="after")
     def normalize_shift_patterns(self):
@@ -93,10 +103,12 @@ class EmployeeCreate(EmployeeBase):
 class EmployeeUpdate(BaseModel):
     serial_number: int | None = Field(default=None, ge=1)
     team: str | None = Field(default=None, min_length=1, max_length=32)
+    deployment_area: str | None = Field(default=None, min_length=1, max_length=32)
     rank: str | None = Field(default=None, min_length=1, max_length=32)
     name: str | None = Field(default=None, min_length=1, max_length=128)
     start_date: date | None = None
     gender: Gender | None = None
+    terminal: Terminal | None = None
     cert: str | None = Field(default=None, max_length=64)
     scheme: str | None = Field(default=None, min_length=1, max_length=8)
     shift_pattern: ShiftPattern | None = None
@@ -105,7 +117,7 @@ class EmployeeUpdate(BaseModel):
     forecast_hours: Decimal | None = Field(default=None, ge=0, decimal_places=2)
     is_active: bool | None = None
 
-    @field_validator("team", "rank", "name", "scheme")
+    @field_validator("team", "deployment_area", "rank", "name", "scheme")
     @classmethod
     def trim_partial(cls, value: str | None) -> str | None:
         if value is None:
@@ -114,6 +126,7 @@ class EmployeeUpdate(BaseModel):
         if not cleaned:
             raise ValueError("field cannot be blank")
         return cleaned
+
 
     @model_validator(mode="after")
     def normalize_shift_patterns(self):
@@ -189,6 +202,7 @@ class RosterCalendarEmployeeRow(BaseModel):
     name: str
     team: str
     shift_pattern: ShiftPattern
+    reporting_times: list[str | None] = Field(default_factory=list)
     schedule: list[str]
     forecast_hours: int = Field(..., ge=0)
 
@@ -207,6 +221,7 @@ RosterStatus = Literal["WORK", "OFF", "OT1", "OT2", "EMPTY"]
 class RosterCalendarSaveRow(BaseModel):
     employee_id: int = Field(..., ge=1)
     schedule: list[RosterStatus] = Field(default_factory=list)
+    reporting_times: list[str | None] = Field(default_factory=list)
 
 
 class RosterCalendarSaveRequest(BaseModel):
@@ -350,6 +365,129 @@ class DeploymentAssignmentsRead(BaseModel):
     deployment_date: date
     assignments: list[DeploymentAssignmentItem] = Field(default_factory=list)
     updated_at: datetime | None = None
+
+
+class DeploymentAgentActionType(str, Enum):
+    RETIME = "RETIME"
+    CANCEL = "CANCEL"
+    CHANGE_GATE = "CHANGE_GATE"
+
+
+class DeploymentAgentAction(BaseModel):
+    action_type: DeploymentAgentActionType
+    employee_id: int = Field(..., ge=1)
+    from_slot_index: int | None = Field(default=None, ge=0, le=24)
+    to_slot_index: int | None = Field(default=None, ge=0, le=24)
+    target_site_id: int | None = Field(default=None, ge=1)
+    target_slot_index: int | None = Field(default=None, ge=0, le=24)
+    reason: str | None = Field(default=None, max_length=512)
+
+    @model_validator(mode="after")
+    def validate_fields_by_action_type(self):
+        if self.action_type == DeploymentAgentActionType.RETIME:
+            if self.from_slot_index is None or self.to_slot_index is None:
+                raise ValueError("from_slot_index and to_slot_index are required for RETIME")
+            if self.from_slot_index == self.to_slot_index:
+                raise ValueError("to_slot_index must be different from from_slot_index for RETIME")
+        elif self.action_type == DeploymentAgentActionType.CHANGE_GATE:
+            if self.target_site_id is None:
+                raise ValueError("target_site_id is required for CHANGE_GATE")
+        return self
+
+
+class DeploymentAgentRequest(BaseModel):
+    deployment_date: date
+    actions: list[DeploymentAgentAction] = Field(..., min_length=1)
+    auto_apply: bool = False
+
+
+class DeploymentAgentActionResult(BaseModel):
+    action_type: DeploymentAgentActionType
+    employee_id: int
+    status: str
+    detail: str
+    before: DeploymentAssignmentItem | None = None
+    after: DeploymentAssignmentItem | None = None
+
+
+class DeploymentAgentResponse(BaseModel):
+    deployment_date: date
+    dry_run: bool
+    actions: list[DeploymentAgentActionResult]
+    assignments: list[DeploymentAssignmentItem] = Field(default_factory=list)
+    updated_at: datetime | None = None
+
+
+class DeploymentAgentPlanRequest(BaseModel):
+    deployment_date: date
+    objective: str = Field(..., min_length=1, max_length=2000)
+    auto_apply: bool = False
+    max_actions: int = Field(default=10, ge=1, le=50)
+
+    @field_validator("objective")
+    @classmethod
+    def trim_objective(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("objective cannot be blank")
+        return cleaned
+
+
+class DeploymentAgentPlanResponse(BaseModel):
+    plan_source: str
+    model: str
+    proposal_actions: list[DeploymentAgentAction] = Field(default_factory=list)
+    execution: DeploymentAgentResponse
+
+
+class Door4AgentFlight(BaseModel):
+    flight_key: str = Field(..., min_length=1, max_length=256)
+    flight_no: str = Field(..., min_length=1, max_length=64)
+    gate: str | None = Field(default=None, max_length=64)
+    terminal: str | None = Field(default=None, max_length=64)
+    eta: str | None = Field(default=None, max_length=32)
+    sch: str | None = Field(default=None, max_length=32)
+    status: str | None = Field(default=None, max_length=64)
+    current_officer_text: str | None = Field(default=None, max_length=256)
+
+
+class Door4AgentOfficer(BaseModel):
+    id: str = Field(..., min_length=1, max_length=64)
+    staff_id: str = Field(..., min_length=1, max_length=64)
+    name: str = Field(..., min_length=1, max_length=128)
+    terminal: str | None = Field(default=None, max_length=64)
+    team: str | None = Field(default=None, max_length=64)
+    rank: str | None = Field(default=None, max_length=64)
+    assigned_count: int = Field(default=0, ge=0)
+
+
+class Door4AgentAssignment(BaseModel):
+    flight_key: str = Field(..., min_length=1, max_length=256)
+    officer_id: str = Field(..., min_length=1, max_length=64)
+    reason: str | None = Field(default=None, max_length=512)
+
+
+class Door4AgentBlockedFlight(BaseModel):
+    flight_key: str = Field(..., min_length=1, max_length=256)
+    reason: str = Field(..., min_length=1, max_length=512)
+
+
+class Door4AgentPlanRequest(BaseModel):
+    deployment_date: date
+    planning_window_minutes: int = Field(default=120, ge=15, le=360)
+    flights: list[Door4AgentFlight] = Field(default_factory=list)
+    officers: list[Door4AgentOfficer] = Field(default_factory=list)
+    assignments: dict[str, str] = Field(default_factory=dict)
+    red_cross_officer_ids: list[str] = Field(default_factory=list)
+    max_assignments: int = Field(default=50, ge=1, le=250)
+
+
+class Door4AgentPlanResponse(BaseModel):
+    plan_source: str
+    model: str
+    assignments: list[Door4AgentAssignment] = Field(default_factory=list)
+    blocked: list[Door4AgentBlockedFlight] = Field(default_factory=list)
+    rejected: list[Door4AgentBlockedFlight] = Field(default_factory=list)
 
 
 class DeploymentCoverageDay(BaseModel):

@@ -17,11 +17,13 @@ class Employee(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     serial_number: Mapped[int] = mapped_column(index=True)
     team: Mapped[str] = mapped_column(String(32), index=True)
+    deployment_area: Mapped[str] = mapped_column(String(32), index=True, default="UNASSIGNED", nullable=False)
     rank: Mapped[str] = mapped_column(String(32), index=True)
     staff_id: Mapped[str] = mapped_column(String(32), index=True)
     name: Mapped[str] = mapped_column(String(128), index=True)
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     gender: Mapped[str] = mapped_column(String(16), default="UNKNOWN", nullable=False)
+    terminal: Mapped[str | None] = mapped_column(String(4), nullable=True, index=True)
     cert: Mapped[str | None] = mapped_column(String(64), nullable=True)
     scheme: Mapped[str] = mapped_column(String(8), index=True)
     shift_pattern: Mapped[str] = mapped_column(String(16), default="5W1O", nullable=False)
@@ -176,6 +178,29 @@ class RosterOverride(Base):
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
     shift_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=now_sg,
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=now_sg,
+        onupdate=now_sg,
+        nullable=False,
+    )
+
+
+class RosterReportingTime(Base):
+    __tablename__ = "roster_reporting_times"
+    __table_args__ = (
+        UniqueConstraint("employee_id", "shift_date", name="uq_roster_reporting_times_employee_date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    shift_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    reporting_time: Mapped[str] = mapped_column(String(5), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=now_sg,

@@ -11,15 +11,16 @@ import RulesPage from './pages/RulesPage'
 import DashboardPage from './pages/DashboardPage'
 import UserManagementPage from './pages/UserManagementPage'
 import OfficerProfilePage from './pages/OfficerProfilePage'
+import Door4OfficersPage from './pages/Door4OfficersPage'
+import Door4AlertPage from './pages/Door4AlertPage'
+import Door4CrossTerminalPage from './pages/Door4CrossTerminalPage'
+import Door4RulesPage from './pages/Door4RulesPage'
+import ReportingTimePage from './pages/ReportingTimePage'
 
 const THEME_KEY = 'roster_theme'
 
 export default function App() {
-  const [darkMode, setDarkMode] = useState(false)
-
-  useEffect(() => {
-    setDarkMode(localStorage.getItem(THEME_KEY) === 'dark')
-  }, [])
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem(THEME_KEY) === 'dark')
 
   useEffect(() => {
     localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
@@ -33,13 +34,20 @@ export default function App() {
         <Route path="/employees" element={<EmployeesPage />} />
         <Route path="/officer-profile" element={<OfficerProfilePage />} />
         <Route path="/rostering-engine" element={<RosteringEnginePage />} />
+        <Route path="/rostering-engine/reporting-time" element={<ReportingTimePage />} />
         <Route path="/deployment-planning" element={<Navigate to="/static-deployment-config" replace />} />
         <Route path="/static-deployment-planning" element={<Navigate to="/static-deployment-config" replace />} />
         <Route path="/static-deployment-config" element={<DeploymentPlanningPage />} />
         <Route path="/deployment-door-4" element={<Navigate to="/deployment-board/door-4" replace />} />
+        <Route path="/deployment-board/door-4/deployment" element={<DeploymentBoardPage scopeKeyOverride="door-4" />} />
+        <Route path="/deployment-board/door-4/officers" element={<Door4OfficersPage />} />
+        <Route path="/deployment-board/door-4/alert" element={<Door4AlertPage />} />
+        <Route path="/deployment-board/door-4/cross-terminal" element={<Door4CrossTerminalPage />} />
+        <Route path="/deployment-board/door-4/rules" element={<Door4RulesPage />} />
         <Route path="/deployment-sq-ramp" element={<Navigate to="/deployment-board/sq-ramp" replace />} />
         <Route path="/deployment-preboard" element={<Navigate to="/deployment-board/preboard" replace />} />
         <Route path="/deployment-board" element={<DeploymentBoardPage />} />
+        <Route path="/deployment-board/door-4" element={<Navigate to="/deployment-board/door-4/deployment" replace />} />
         <Route path="/deployment-board/:scopeKey" element={<DeploymentBoardPage />} />
         <Route path="/deployment-map" element={<DeploymentMapPage />} />
         <Route path="/training-hub" element={<Navigate to="/course-scheduling" replace />} />

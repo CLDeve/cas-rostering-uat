@@ -152,6 +152,7 @@ export function createEmployee(payload) {
       name: payload.name,
       start_date: payload.start_date || null,
       gender: payload.gender || 'UNKNOWN',
+      terminal: payload.terminal || null,
       cert: payload.cert || null,
       scheme: payload.scheme,
       shift_pattern: payload.shift_pattern || '5W1O',
@@ -185,8 +186,8 @@ export function uploadEmployees(file) {
 export function getDownloadTemplateUrl(sheetName) {
   if (USE_MOCK) {
     const csv = [
-      'TEAM,RANK,ID,NAME,Start Date,Gender,CERT,Scheme,Shift Pattern,Contractual hours',
-      ',,,,,,,' + (sheetName || 'SAP FEB (AM)') + ',,',
+      'Team,Deployment Area,Terminal,Rank,Staff ID,Name,Start Date,Gender,Cert,Scheme,Shift Pattern,Contractual Hr',
+      `A1,Door 4,T2,SGT,100001,JOHN DOE,2026-02-01,MALE,ADP,A,5W1O,264`,
     ].join('\n')
     return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`
   }
@@ -344,7 +345,7 @@ export function getDeploymentAssignments(deploymentDate) {
 
 export function getDoor4DepartureFlights(tixdate, flightno = '') {
   const query = buildQuery({ tixdate, flightno })
-  return request(`/api/v1/deployments/door-4/flights?${query}`)
+  return request(`/api/v1/deployments/door-4/arrivals?${query}`)
 }
 
 export function replaceDeploymentAssignments(payload) {
@@ -356,6 +357,34 @@ export function replaceDeploymentAssignments(payload) {
   }
   return request('/api/v1/deployments/assignments', {
     method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function planDeploymentAgent(payload) {
+  if (USE_MOCK) {
+    return Promise.resolve({
+      plan_source: 'mock',
+      model: 'mock-model',
+      proposal_actions: [],
+      execution: {
+        deployment_date: payload.deployment_date,
+        dry_run: true,
+        actions: [],
+        assignments: [],
+        updated_at: null,
+      },
+    })
+  }
+  return request('/api/v1/deployments/agent/plan', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function planDoor4Agent(payload) {
+  return request('/api/v1/deployments/door-4/agent/plan', {
+    method: 'POST',
     body: JSON.stringify(payload),
   })
 }

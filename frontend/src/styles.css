@@ -877,6 +877,374 @@ button:active,
   box-shadow: none;
 }
 
+.door4-workspace-grid {
+  display: grid;
+  grid-template-columns: 460px 1fr;
+  gap: 10px;
+}
+
+.door4-pool {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 12px;
+  min-height: 420px;
+  max-height: calc(100vh - 240px);
+  overflow: auto;
+}
+
+.door4-pool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.door4-pool-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.door4-officer-search {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.door4-red-cross-zone {
+  border: 1px dashed #ef4444;
+  border-radius: var(--r-md);
+  background: rgba(127, 29, 29, 0.15);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.door4-red-cross-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #fca5a5;
+  margin-bottom: 6px;
+  width: 100%;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.door4-manpower-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.door4-manpower-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%) 0%, var(--surface) 100%);
+  padding: 6px 8px 5px;
+  cursor: grab;
+}
+
+.door4-manpower-card-redcross {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: linear-gradient(180deg, rgba(127, 29, 29, 0.26) 0%, rgba(69, 10, 10, 0.18) 100%);
+}
+
+.door4-manpower-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.door4-manpower-card-head strong {
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.door4-manpower-gates {
+  font-size: 38px;
+  font-weight: 900;
+  color: var(--accent-text);
+  line-height: 0.9;
+}
+
+.door4-manpower-meta {
+  display: grid;
+  gap: 1px;
+  margin-bottom: 2px;
+}
+
+.door4-manpower-meta span {
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.15;
+}
+
+.door4-officer-board {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 290px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.door4-officer-row {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);
+  overflow: hidden;
+}
+
+.door4-officer-meta {
+  padding: 10px 12px;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-subtle) 72%, var(--surface) 28%);
+}
+
+.door4-officer-meta h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.door4-officer-meta p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.door4-officer-meta strong {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--success-text);
+  font-size: 12px;
+}
+
+.door4-assignment-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 8px;
+}
+
+.door4-assignment-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.door4-assignment-card {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 235px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 7px 9px;
+}
+
+.door4-assignment-card .gate {
+  color: var(--accent-text);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.door4-assignment-card .detail {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.door4-assignment-card .detail strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.door4-assignment-card .detail span,
+.door4-assignment-card .state {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.door4-assignment-card.status-green {
+  border-color: var(--success-border);
+  background: color-mix(in srgb, var(--success-bg) 45%, var(--surface) 55%);
+}
+
+.door4-assignment-card.status-blue {
+  border-color: #93c5fd;
+  background: color-mix(in srgb, var(--accent-subtle) 50%, var(--surface) 50%);
+}
+
+.door4-assignment-card.status-amber {
+  border-color: var(--warning-border);
+  background: color-mix(in srgb, var(--warning-bg) 45%, var(--surface) 55%);
+}
+
+.door4-assignment-card.status-red {
+  border-color: var(--danger-border);
+  background: color-mix(in srgb, var(--danger-bg) 45%, var(--surface) 55%);
+}
+
+.door4-board-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.door4-table-search {
+  min-width: 180px;
+}
+
+.door4-agentic-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.door4-switch {
+  height: 28px;
+  min-width: 56px;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #9ca3af;
+  position: relative;
+  padding: 0;
+  transition: background 120ms ease;
+}
+
+.door4-switch.is-on {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.door4-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  transition: left 120ms ease;
+}
+
+.door4-switch.is-on .door4-switch-knob {
+  left: 30px;
+}
+
+.door4-switch-state {
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.door4-switch.is-on .door4-switch-state {
+  left: 8px;
+  color: #fff;
+}
+
+.door4-flight-table-wrap {
+  max-height: calc(100vh - 320px);
+  overflow: auto;
+}
+
+.door4-flight-table {
+  width: 100%;
+}
+
+.door4-flight-break-row td {
+  background: color-mix(in srgb, var(--accent-subtle) 75%, var(--surface) 25%);
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.door4-flight-officer-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.door4-flight-officer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.door4-gate-cell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.door4-gate-change {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.door4-beacon-toggle {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  padding: 0;
+}
+
+.door4-beacon-toggle:hover {
+  background: color-mix(in srgb, var(--surface) 80%, var(--accent) 20%);
+  border-color: var(--accent);
+}
+
+.door4-beacon-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(59 130 246 / 22%);
+}
+
+.door4-flight-beacon-icon.is-not-detected {
+  color: #ef4444;
+}
+
+.door4-flight-beacon-icon.is-detected {
+  color: #60a5fa;
+}
+
+.door4-remarks-input {
+  min-width: 160px;
+  width: 100%;
+}
+
+.door4-task-input {
+  min-width: 140px;
+  width: 100%;
+}
+
 
 /* ── FORM INPUTS ──────────────────────────────────────────────── */
 input,

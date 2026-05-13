@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from roster_system.api.dependencies import get_training_service, require_planner_user
+from roster_system.domains.training.services import TrainingConflictError, TrainingService
 from roster_system.schemas import TrainingCourseCreate, TrainingCourseRead
-from roster_system.services.training_service import TrainingConflictError, TrainingService
 
 router = APIRouter(prefix="/trainings", tags=["trainings"])
 

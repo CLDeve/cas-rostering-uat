@@ -12,7 +12,7 @@ from roster_system.schemas import (
     ShiftPlanResponse,
     UploadFileRead,
 )
-from roster_system.services.employee_service import EmployeeConflictError, EmployeeNotFoundError, EmployeeService
+from roster_system.domains.rostering.services import EmployeeConflictError, EmployeeNotFoundError, EmployeeService
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -26,7 +26,12 @@ def download_upload_template(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="employee_upload_template.xlsx"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="employee_upload_template.xlsx"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 

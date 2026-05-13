@@ -16,6 +16,10 @@ import {
   PanelLeft,
   UserCog,
   IdCard,
+  Bell,
+  Shuffle,
+  UserCheck,
+  Briefcase,
 } from 'lucide-react'
 
 const navItems = [
@@ -54,6 +58,15 @@ const navItems = [
     label: 'Rostering Engine',
     icon: CalendarDays,
     subtitle: 'Calendar roster with shift logic and forecast controls.',
+    exact: true,
+  },
+  {
+    to: '/rostering-engine/reporting-time',
+    label: 'Reporting Time',
+    icon: CalendarDays,
+    subtitle: 'Set officer reporting time by date.',
+    subnav: true,
+    exact: true,
   },
   {
     to: '/deployment-group',
@@ -72,12 +85,53 @@ const navItems = [
     groupKey: 'deployment',
   },
   {
-    to: '/deployment-board/door-4',
+    to: '/deployment-door-4-group',
     label: 'Door 4',
     icon: LayoutGrid,
-    subtitle: 'Open deployment board for Door 4.',
+    subtitle: 'Door 4 deployment operations.',
+    isGroup: true,
+    groupKey: 'door4',
     subnav: true,
-    groupKey: 'deployment',
+  },
+  {
+    to: '/deployment-board/door-4/deployment',
+    label: 'Door 4 Deployment',
+    icon: Briefcase,
+    subtitle: 'Door 4 manpower deployment board.',
+    subnav: true,
+    groupKey: 'door4',
+  },
+  {
+    to: '/deployment-board/door-4/officers',
+    label: 'Door 4 Officers',
+    icon: UserCheck,
+    subtitle: 'Door 4 officers and assignment list.',
+    subnav: true,
+    groupKey: 'door4',
+  },
+  {
+    to: '/deployment-board/door-4/alert',
+    label: 'Door 4 Alert',
+    icon: Bell,
+    subtitle: 'Door 4 alerts and escalations.',
+    subnav: true,
+    groupKey: 'door4',
+  },
+  {
+    to: '/deployment-board/door-4/cross-terminal',
+    label: 'Cross Terminal',
+    icon: Shuffle,
+    subtitle: 'Officers blocked by terminal-crossing constraints.',
+    subnav: true,
+    groupKey: 'door4',
+  },
+  {
+    to: '/deployment-board/door-4/rules',
+    label: 'Door 4 Rules',
+    icon: FileText,
+    subtitle: 'Door 4 assignment and deployment operating rules.',
+    subnav: true,
+    groupKey: 'door4',
   },
   {
     to: '/deployment-board/sq-ramp',
@@ -102,6 +156,7 @@ const navItems = [
     subtitle: 'Assign available officers to site slots by date.',
     subnav: true,
     groupKey: 'deployment',
+    exact: true,
   },
   {
     to: '/deployment-map',
@@ -162,6 +217,12 @@ function resolveMeta(pathname) {
       subtitle: 'Deployment planning and board operations.',
     }
   }
+  if (pathname.startsWith('/deployment-door-4-group')) {
+    return {
+      label: 'Door 4',
+      subtitle: 'Door 4 deployment operations.',
+    }
+  }
   if (pathname.startsWith('/training-group')) {
     return {
       label: 'Training',
@@ -180,12 +241,14 @@ function resolveMeta(pathname) {
 export default function Layout({ children, darkMode, onToggleDarkMode }) {
   const location = useLocation()
   const meta = resolveMeta(location.pathname)
+  const hidePageHeader = location.pathname.startsWith('/deployment-board/door-4/deployment')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [apiTokenInput, setApiTokenInput] = useState('')
   const [trainingExpanded, setTrainingExpanded] = useState(true)
   const [deploymentExpanded, setDeploymentExpanded] = useState(true)
   const [employeesExpanded, setEmployeesExpanded] = useState(true)
   const [routeLoading, setRouteLoading] = useState(false)
+  const [door4Expanded, setDoor4Expanded] = useState(true)
 
   useEffect(() => {
     const saved = localStorage.getItem('roster_sidebar_open')
@@ -198,6 +261,8 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
     if (trainingState === '0') setTrainingExpanded(false)
     const deploymentState = localStorage.getItem('roster_deployment_expanded')
     if (deploymentState === '0') setDeploymentExpanded(false)
+    const door4State = localStorage.getItem('roster_door4_expanded')
+    if (door4State === '0') setDoor4Expanded(false)
     const employeesState = localStorage.getItem('roster_employees_expanded')
     if (employeesState === '0') setEmployeesExpanded(false)
   }, [])
@@ -217,6 +282,10 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
   useEffect(() => {
     localStorage.setItem('roster_employees_expanded', employeesExpanded ? '1' : '0')
   }, [employeesExpanded])
+
+  useEffect(() => {
+    localStorage.setItem('roster_door4_expanded', door4Expanded ? '1' : '0')
+  }, [door4Expanded])
 
   useEffect(() => {
     setRouteLoading(true)
@@ -262,16 +331,21 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
               if (item.groupKey === 'employees') return employeesExpanded
               if (item.groupKey === 'training') return trainingExpanded
               if (item.groupKey === 'deployment') return deploymentExpanded
+              if (item.groupKey === 'door4') {
+                if (item.isGroup) return deploymentExpanded
+                return deploymentExpanded && door4Expanded
+              }
               return true
             })
-            .map(({ to, label, icon: Icon, subnav, isGroup, groupKey }) => (
+            .map(({ to, label, icon: Icon, subnav, isGroup, groupKey, exact }) => (
               isGroup ? (
                 <div
                   key={to}
                   className={`nav-link${
                     (groupKey === 'employees' && employeesExpanded) ||
                     (groupKey === 'training' && trainingExpanded) ||
-                    (groupKey === 'deployment' && deploymentExpanded)
+                    (groupKey === 'deployment' && deploymentExpanded) ||
+                    (groupKey === 'door4' && door4Expanded)
                       ? ' expanded'
                       : ''
                   }`}
@@ -279,6 +353,7 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
                     if (groupKey === 'employees') setEmployeesExpanded((v) => !v)
                     if (groupKey === 'training') setTrainingExpanded((v) => !v)
                     if (groupKey === 'deployment') setDeploymentExpanded((v) => !v)
+                    if (groupKey === 'door4') setDoor4Expanded((v) => !v)
                   }}
                   role="button"
                   tabIndex={0}
@@ -290,6 +365,7 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
                 <NavLink
                   key={to}
                   to={to}
+                  end={Boolean(exact)}
                   className={({ isActive }) => `nav-link${isActive ? ' active' : ''}${subnav ? ' subnav-link' : ''}`}
                 >
                   <Icon className="nav-icon" />
@@ -351,12 +427,14 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
 
       <main className="page">
         {routeLoading && <PageLoader text="Loading page..." />}
-        <header className="page-header">
-          <div>
-            <h1>{meta.label}</h1>
-            <p>{meta.subtitle}</p>
-          </div>
-        </header>
+        {!hidePageHeader && (
+          <header className="page-header">
+            <div>
+              <h1>{meta.label}</h1>
+              <p>{meta.subtitle}</p>
+            </div>
+          </header>
+        )}
         {children}
       </main>
     </div>

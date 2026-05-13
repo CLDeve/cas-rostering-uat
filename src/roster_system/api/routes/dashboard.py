@@ -3,8 +3,8 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 
 from roster_system.api.dependencies import get_deployment_service
+from roster_system.domains.deployment.services import DeploymentService
 from roster_system.schemas import DeploymentCoverageCalendarRead, DeploymentCoverageDay
-from roster_system.services.deployment_service import DeploymentService
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 

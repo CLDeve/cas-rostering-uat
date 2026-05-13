@@ -10,6 +10,8 @@ import {
 import SearchDropdown from '../components/SearchDropdown'
 
 const defaultForm = {
+  deployment_area: '',
+  terminal: '',
   team: '',
   rank: '',
   staff_id: '',
@@ -95,7 +97,32 @@ export default function EmployeesPage() {
   }
 
   function onDownloadTemplate() {
-    window.location.href = getDownloadTemplateUrl()
+    const token = sessionStorage.getItem('roster_api_token') || localStorage.getItem('roster_api_token') || ''
+    const url = new URL(getDownloadTemplateUrl(), window.location.origin)
+    url.searchParams.set('_t', String(Date.now()))
+    fetch(url.toString(), {
+      cache: 'no-store',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Download template failed: ${response.status}`)
+        }
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'employee_upload_template.xlsx'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+      })
+      .catch((err) => {
+        setStatus(err.message || 'Unable to download template.')
+      })
   }
 
   function onDownloadLatest() {
@@ -103,18 +130,45 @@ export default function EmployeesPage() {
       setStatus('No latest uploaded file available yet.')
       return
     }
-    window.location.href = getLatestUploadUrl()
+    const token = sessionStorage.getItem('roster_api_token') || localStorage.getItem('roster_api_token') || ''
+    fetch(getLatestUploadUrl(), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Download latest upload failed: ${response.status}`)
+        }
+        const contentDisposition = response.headers.get('content-disposition') || ''
+        const match = contentDisposition.match(/filename=\"?([^"]+)\"?/)
+        const filename = match?.[1] || 'latest_uploaded_file.xlsx'
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+      })
+      .catch((err) => {
+        setStatus(err.message || 'Unable to download latest uploaded file.')
+      })
   }
 
   async function onCreateOfficer(event) {
     event.preventDefault()
-    if (!form.team || !form.rank || !form.staff_id || !form.name || !form.gender || !form.scheme || form.shift_patterns.length === 0 || !form.contractual_hours) {
+    if (!form.deployment_area || !form.terminal || !form.team || !form.rank || !form.staff_id || !form.name || !form.gender || !form.scheme || form.shift_patterns.length === 0 || !form.contractual_hours) {
       setStatus('Please fill all required officer fields.')
       return
     }
 
     const payload = {
       team: form.team.trim(),
+      deployment_area: form.deployment_area.trim(),
+      terminal: form.terminal || null,
       rank: form.rank.trim(),
       staff_id: form.staff_id.trim(),
       name: form.name.trim(),
@@ -139,7 +193,13 @@ export default function EmployeesPage() {
       )
       await refreshEmployees()
     } catch (err) {
-      setStatus(`Create officer failed: ${err.message}`)
+      await refreshEmployees()
+      const message = String(err?.message || '')
+      if (message.toLowerCase().includes('staff_id already exists')) {
+        setStatus(`Create officer failed: staff_id ${payload.staff_id} already exists. Please use a different Staff ID.`)
+      } else {
+        setStatus(`Create officer failed: ${message}`)
+      }
     }
   }
 
@@ -147,7 +207,7 @@ export default function EmployeesPage() {
     if (rows.length === 0) {
       return (
         <tr>
-          <td colSpan={11} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
+          <td colSpan={13} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
             No employee records available.
           </td>
         </tr>
@@ -157,6 +217,8 @@ export default function EmployeesPage() {
       <tr key={row.id}>
         <td>{row.serial_number}</td>
         <td>{row.team}</td>
+        <td>{row.deployment_area || 'UNASSIGNED'}</td>
+        <td>{row.terminal || '—'}</td>
         <td>{row.rank}</td>
         <td>{row.staff_id}</td>
         <td style={{ fontWeight: 500 }}>{row.name}</td>
@@ -212,6 +274,29 @@ export default function EmployeesPage() {
             placeholder="TEAM *"
             value={form.team}
             onChange={(e) => setForm((v) => ({ ...v, team: e.target.value }))}
+          />
+          <SearchDropdown
+            options={[
+              { value: 'Door 4', label: 'Door 4' },
+              { value: 'SQ Ramp', label: 'SQ Ramp' },
+              { value: 'Preboard', label: 'Preboard' },
+            ]}
+            value={form.deployment_area}
+            onChange={(next) => setForm((v) => ({ ...v, deployment_area: next }))}
+            placeholder="Deployment Area *"
+            searchable={false}
+          />
+          <SearchDropdown
+            options={[
+              { value: 'T1', label: 'T1' },
+              { value: 'T2', label: 'T2' },
+              { value: 'T3', label: 'T3' },
+              { value: 'T4', label: 'T4' },
+            ]}
+            value={form.terminal}
+            onChange={(next) => setForm((v) => ({ ...v, terminal: next }))}
+            placeholder="Terminal *"
+            searchable={false}
           />
           <input
             placeholder="RANK *"
@@ -300,6 +385,8 @@ export default function EmployeesPage() {
               <tr>
                 <th>S/N</th>
                 <th>Team</th>
+                <th>Deployment Area</th>
+                <th>Terminal</th>
                 <th>Rank</th>
                 <th>Staff ID</th>
                 <th>Name</th>

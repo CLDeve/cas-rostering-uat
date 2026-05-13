@@ -4,20 +4,24 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 _TEMPLATE_HEADERS = [
-    "TEAM",
-    "RANK",
-    "ID",
-    "NAME",
+    "Team",
+    "Deployment Area",
+    "Terminal",
+    "Rank",
+    "Staff ID",
+    "Name",
     "Start Date",
     "Gender",
-    "CERT",
+    "Cert",
     "Scheme",
     "Shift Pattern",
-    "Contractual hours",
+    "Contractual Hr",
 ]
 
 _EXAMPLE_ROW = [
     "A1",
+    "Door 4",
+    "T2",
     "SGT",
     "100001",
     "JOHN DOE",
@@ -45,7 +49,7 @@ def build_employee_upload_template(sheet_name: str = "SAP FEB (AM)") -> bytes:
         sheet.cell(row=2, column=col_index, value=value)
 
     sheet.freeze_panes = "A2"
-    column_widths = [10, 10, 12, 28, 14, 12, 12, 10, 14, 18]
+    column_widths = [12, 18, 10, 12, 12, 28, 14, 12, 12, 10, 14, 18]
     for idx, width in enumerate(column_widths, start=1):
         sheet.column_dimensions[chr(ord('A') + idx - 1)].width = width
 

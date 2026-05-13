@@ -11,6 +11,7 @@ from roster_system.api.routes import deployments as deployment_routes
 def employee_payload(staff_id: str = "148928") -> dict:
     return {
         "team": "A1",
+        "deployment_area": "Door 4",
         "rank": "SGT2",
         "staff_id": staff_id,
         "name": "SAMUEL TEE HONG",
@@ -52,6 +53,7 @@ def test_create_employee() -> None:
     assert response.status_code == 201
     body = response.json()
     assert body["staff_id"] == "100001"
+    assert body["deployment_area"] == "Door 4"
     assert body["serial_number"] == 1
     assert Decimal(body["contractual_hours"]) == Decimal("264.00")
 
@@ -554,6 +556,303 @@ def test_replace_deployment_assignments_invalid_employee_rejected() -> None:
     assert "employee_id" in replace_response.json()["detail"]
 
 
+def test_deployment_agent_actions_dry_run_retime_cancel_change_gate() -> None:
+    with TestClient(app) as client:
+        site_a = client.post(
+            "/api/v1/deployments",
+            json={
+                "site_name": "Agent Site A",
+                "deployment_days": ["MON"],
+                "requirements": [
+                    {
+                        "product_type": "APO",
+                        "required_headcount": 2,
+                        "reporting_from": "08:00",
+                        "reporting_to": "16:00",
+                        "next_shift_from": "16:00",
+                        "next_shift_to": "00:00",
+                    }
+                ],
+            },
+        )
+        site_b = client.post(
+            "/api/v1/deployments",
+            json={
+                "site_name": "Agent Site B",
+                "deployment_days": ["MON"],
+                "requirements": [
+                    {
+                        "product_type": "AVSO",
+                        "required_headcount": 1,
+                        "reporting_from": "08:00",
+                        "reporting_to": "16:00",
+                        "next_shift_from": "16:00",
+                        "next_shift_to": "00:00",
+                    }
+                ],
+            },
+        )
+        emp1 = client.post("/api/v1/employees", json=employee_payload("930001"))
+        emp2 = client.post("/api/v1/employees", json=employee_payload("930002"))
+        assert site_a.status_code == 201
+        assert site_b.status_code == 201
+        assert emp1.status_code == 201
+        assert emp2.status_code == 201
+
+        assign_resp = client.put(
+            "/api/v1/deployments/assignments",
+            json={
+                "deployment_date": "2026-05-04",
+                "assignments": [
+                    {"site_id": site_a.json()["id"], "slot_index": 0, "employee_id": emp1.json()["id"]},
+                    {"site_id": site_a.json()["id"], "slot_index": 1, "employee_id": emp2.json()["id"]},
+                ],
+            },
+        )
+        assert assign_resp.status_code == 200
+
+        response = client.post(
+            "/api/v1/deployments/agent/actions",
+            json={
+                "deployment_date": "2026-05-04",
+                "auto_apply": False,
+                "actions": [
+                    {
+                        "action_type": "RETIME",
+                        "employee_id": emp1.json()["id"],
+                        "from_slot_index": 0,
+                        "to_slot_index": 2,
+                    },
+                    {
+                        "action_type": "CHANGE_GATE",
+                        "employee_id": emp2.json()["id"],
+                        "target_site_id": site_b.json()["id"],
+                        "target_slot_index": 3,
+                    },
+                ],
+            },
+        )
+        persisted_after = client.get("/api/v1/deployments/assignments", params={"deployment_date": "2026-05-04"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dry_run"] is True
+    assert len(payload["actions"]) == 2
+    proposed = {(row["employee_id"], row["site_id"], row["slot_index"]) for row in payload["assignments"]}
+    assert (emp1.json()["id"], site_a.json()["id"], 2) in proposed
+    assert (emp2.json()["id"], site_b.json()["id"], 3) in proposed
+
+    assert persisted_after.status_code == 200
+    persisted_set = {
+        (row["employee_id"], row["site_id"], row["slot_index"])
+        for row in persisted_after.json()["assignments"]
+    }
+    assert (emp1.json()["id"], site_a.json()["id"], 0) in persisted_set
+    assert (emp2.json()["id"], site_a.json()["id"], 1) in persisted_set
+
+
+def test_deployment_agent_actions_auto_apply_cancel() -> None:
+    with TestClient(app) as client:
+        site = client.post(
+            "/api/v1/deployments",
+            json={
+                "site_name": "Agent Apply Site",
+                "deployment_days": ["MON"],
+                "requirements": [
+                    {
+                        "product_type": "APO",
+                        "required_headcount": 1,
+                        "reporting_from": "08:00",
+                        "reporting_to": "16:00",
+                        "next_shift_from": "16:00",
+                        "next_shift_to": "00:00",
+                    }
+                ],
+            },
+        )
+        emp = client.post("/api/v1/employees", json=employee_payload("930003"))
+        assert site.status_code == 201
+        assert emp.status_code == 201
+
+        seed = client.put(
+            "/api/v1/deployments/assignments",
+            json={
+                "deployment_date": "2026-05-05",
+                "assignments": [
+                    {"site_id": site.json()["id"], "slot_index": 0, "employee_id": emp.json()["id"]},
+                ],
+            },
+        )
+        assert seed.status_code == 200
+
+        response = client.post(
+            "/api/v1/deployments/agent/actions",
+            json={
+                "deployment_date": "2026-05-05",
+                "auto_apply": True,
+                "actions": [
+                    {"action_type": "CANCEL", "employee_id": emp.json()["id"]},
+                ],
+            },
+        )
+        persisted_after = client.get("/api/v1/deployments/assignments", params={"deployment_date": "2026-05-05"})
+
+    assert response.status_code == 200
+    assert response.json()["dry_run"] is False
+    assert persisted_after.status_code == 200
+    assert persisted_after.json()["assignments"] == []
+
+
+def test_deployment_agent_actions_reject_invalid_employee() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/deployments/agent/actions",
+            json={
+                "deployment_date": "2026-05-06",
+                "auto_apply": False,
+                "actions": [
+                    {"action_type": "CANCEL", "employee_id": 999999},
+                ],
+            },
+        )
+
+    assert response.status_code == 422
+    assert "not assigned" in response.json()["detail"]
+
+
+def test_deployment_agent_plan_endpoint_dry_run(monkeypatch) -> None:
+    def fake_plan(payload, service):
+        current = service.list_assignments(payload.deployment_date)
+        return (
+            "gpt-5-mini",
+            [
+                {
+                    "action_type": "RETIME",
+                    "employee_id": current.assignments[0].employee_id,
+                    "from_slot_index": 0,
+                    "to_slot_index": 2,
+                    "reason": "Balance coverage",
+                }
+            ],
+        )
+
+    monkeypatch.setattr(deployment_routes, "_plan_actions_with_openai", fake_plan)
+
+    with TestClient(app) as client:
+        site = client.post(
+            "/api/v1/deployments",
+            json={
+                "site_name": "Plan Site A",
+                "deployment_days": ["MON"],
+                "requirements": [
+                    {
+                        "product_type": "APO",
+                        "required_headcount": 1,
+                        "reporting_from": "08:00",
+                        "reporting_to": "16:00",
+                        "next_shift_from": "16:00",
+                        "next_shift_to": "00:00",
+                    }
+                ],
+            },
+        )
+        emp = client.post("/api/v1/employees", json=employee_payload("930004"))
+        assert site.status_code == 201
+        assert emp.status_code == 201
+
+        seed = client.put(
+            "/api/v1/deployments/assignments",
+            json={
+                "deployment_date": "2026-05-07",
+                "assignments": [
+                    {"site_id": site.json()["id"], "slot_index": 0, "employee_id": emp.json()["id"]},
+                ],
+            },
+        )
+        assert seed.status_code == 200
+
+        response = client.post(
+            "/api/v1/deployments/agent/plan",
+            json={
+                "deployment_date": "2026-05-07",
+                "objective": "Move employee to slot 2",
+                "auto_apply": False,
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["plan_source"] == "openai"
+    assert payload["model"] == "gpt-5-mini"
+    assert payload["execution"]["dry_run"] is True
+    assert payload["execution"]["assignments"][0]["slot_index"] == 2
+
+
+def test_deployment_agent_plan_endpoint_auto_apply(monkeypatch) -> None:
+    def fake_plan(payload, service):
+        current = service.list_assignments(payload.deployment_date)
+        return (
+            "gpt-5-mini",
+            [
+                {
+                    "action_type": "CANCEL",
+                    "employee_id": current.assignments[0].employee_id,
+                    "reason": "No demand",
+                }
+            ],
+        )
+
+    monkeypatch.setattr(deployment_routes, "_plan_actions_with_openai", fake_plan)
+
+    with TestClient(app) as client:
+        site = client.post(
+            "/api/v1/deployments",
+            json={
+                "site_name": "Plan Site B",
+                "deployment_days": ["MON"],
+                "requirements": [
+                    {
+                        "product_type": "APO",
+                        "required_headcount": 1,
+                        "reporting_from": "08:00",
+                        "reporting_to": "16:00",
+                        "next_shift_from": "16:00",
+                        "next_shift_to": "00:00",
+                    }
+                ],
+            },
+        )
+        emp = client.post("/api/v1/employees", json=employee_payload("930005"))
+        assert site.status_code == 201
+        assert emp.status_code == 201
+
+        seed = client.put(
+            "/api/v1/deployments/assignments",
+            json={
+                "deployment_date": "2026-05-08",
+                "assignments": [
+                    {"site_id": site.json()["id"], "slot_index": 0, "employee_id": emp.json()["id"]},
+                ],
+            },
+        )
+        assert seed.status_code == 200
+
+        response = client.post(
+            "/api/v1/deployments/agent/plan",
+            json={
+                "deployment_date": "2026-05-08",
+                "objective": "Cancel assignment",
+                "auto_apply": True,
+            },
+        )
+        persisted = client.get("/api/v1/deployments/assignments", params={"deployment_date": "2026-05-08"})
+
+    assert response.status_code == 200
+    assert response.json()["execution"]["dry_run"] is False
+    assert persisted.status_code == 200
+    assert persisted.json()["assignments"] == []
+
+
 def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
     captured = {}
 
@@ -592,8 +891,8 @@ def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json() == [{"flightno": "3U3910", "gate": "D4"}]
     assert captured["method"] == "GET"
-    assert "tixdate=2026-01-17" in captured["path"]
-    assert "flightno=3U3910" in captured["path"]
+    assert "date=2026-01-17" in captured["path"]
+    assert "flightno=" not in captured["path"]
     assert captured["api_key"] == "O9rLzAI7U16zbQrZksSne7RJ0C4cZGQv862CXEB4"
     assert captured["accept"] == "application/json"
 
@@ -604,8 +903,46 @@ def test_door_4_flights_proxy_forwards_required_headers(monkeypatch) -> None:
         )
 
     assert response_without_flight.status_code == 200
-    assert "tixdate=2026-01-17" in captured["path"]
+    assert "date=2026-01-17" in captured["path"]
     assert "flightno=" not in captured["path"]
+
+
+def test_door_4_flights_proxy_filters_slave_flights(monkeypatch) -> None:
+    class FakeResponse:
+        status = 200
+        reason = "OK"
+
+        def read(self) -> bytes:
+            return (
+                b'{"count":2,"items":['
+                b'{"flightno":"SQ608","display_gate":"E27"},'
+                b'{"flightno":"AI8172","display_gate":"E27","master_flt_no":{"master":"SQ608"}}'
+                b']}'
+            )
+
+    class FakeConnection:
+        def __init__(self, _host, _timeout=None, **_kwargs):
+            pass
+
+        def request(self, _method, _path, headers=None, **_kwargs):
+            pass
+
+        def getresponse(self):
+            return FakeResponse()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(deployment_routes, "HTTPSConnection", FakeConnection)
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/deployments/door-4/flights", params={"tixdate": "2026-01-17"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == 1
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["flightno"] == "SQ608"
 
 
 def test_dashboard_coverage_daily_and_calendar() -> None:

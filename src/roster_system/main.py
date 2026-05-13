@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from roster_system.api.dependencies import require_authenticated_user
 from roster_system.api.routes.deployments import router as deployments_router
@@ -14,12 +15,57 @@ from roster_system.api.routes.users import router as users_router
 from roster_system.config import settings
 from roster_system.security_middleware import AuditLogMiddleware, RateLimitMiddleware, SecurityHeadersMiddleware
 from roster_system.web.routes import router as web_router
+from roster_system.db import engine
+
+
+def _ensure_employee_deployment_area_column() -> None:
+    if not settings.database_url.startswith("sqlite"):
+        return
+    with engine.begin() as connection:
+        table_info = connection.execute(text("PRAGMA table_info(employees)")).fetchall()
+        columns = {str(row[1]) for row in table_info}
+        if "deployment_area" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE employees "
+                    "ADD COLUMN deployment_area VARCHAR(32) NOT NULL DEFAULT 'UNASSIGNED'"
+                )
+            )
+        if "terminal" not in columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE employees "
+                    "ADD COLUMN terminal VARCHAR(4) NULL"
+                )
+            )
+
+
+def _ensure_roster_reporting_times_table() -> None:
+    if not settings.database_url.startswith("sqlite"):
+        return
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS roster_reporting_times ("
+                "id INTEGER PRIMARY KEY, "
+                "employee_id INTEGER NOT NULL, "
+                "shift_date DATE NOT NULL, "
+                "reporting_time VARCHAR(5) NOT NULL, "
+                "created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+                "updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+                "FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE, "
+                "UNIQUE(employee_id, shift_date)"
+                ")"
+            )
+        )
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings.validate_production_safety()
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    _ensure_employee_deployment_area_column()
+    _ensure_roster_reporting_times_table()
     yield
 
 

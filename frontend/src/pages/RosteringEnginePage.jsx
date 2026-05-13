@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getRosterCalendar, saveRosterCalendar } from '../api'
 import SearchDropdown from '../components/SearchDropdown'
 
@@ -67,6 +67,7 @@ export default function RosteringEnginePage() {
   const [patternFilter, setPatternFilter] = useState('ALL')
   const [selectedOfficerIds, setSelectedOfficerIds] = useState(new Set())
   const [bulkStatus, setBulkStatus] = useState('W')
+  const [reportingDay, setReportingDay] = useState(1)
 
   const yearOptions = useMemo(() => {
     const base = now.getFullYear()
@@ -85,10 +86,12 @@ export default function RosteringEnginePage() {
         name: emp.name,
         team: emp.team,
         shift_pattern: emp.shift_pattern,
+        reporting_times: Array.isArray(emp.reporting_times) ? emp.reporting_times : [],
         schedule: (emp.schedule || []).map(apiToUiStatus),
       }))
       setHeaders(payload.day_headers || [])
       setRows(normalizedRows)
+      setReportingDay(1)
       setSelectedOfficerIds(new Set())
       const monthLabel = MONTH_OPTIONS.find((item) => item.value === payload.month)?.label ?? String(payload.month)
       setStatus(`Roster generated for ${monthLabel} ${payload.year}.`)
@@ -98,6 +101,10 @@ export default function RosteringEnginePage() {
       setStatus(`Unable to generate roster: ${err.message}`)
     }
   }
+
+  useEffect(() => {
+    onGenerate()
+  }, [year, month])
 
   async function onSaveRoster() {
     if (rows.length === 0) {
@@ -112,6 +119,7 @@ export default function RosteringEnginePage() {
         employees: rows.map((row) => ({
           employee_id: row.employee_id,
           schedule: row.schedule.map(uiToApiStatus),
+          reporting_times: row.reporting_times || [],
         })),
       }
       await saveRosterCalendar(payload)
@@ -138,6 +146,15 @@ export default function RosteringEnginePage() {
       }
 
       setStatus('Roster updated in view. Remember to apply operational approval workflow before deployment.')
+      return cloned
+    })
+  }
+
+  function updateReportingTime(rowIndex, dayIndex, nextValue) {
+    setRows((prev) => {
+      const cloned = prev.map((row) => ({ ...row, reporting_times: [...(row.reporting_times || [])] }))
+      while (cloned[rowIndex].reporting_times.length < headers.length) cloned[rowIndex].reporting_times.push(null)
+      cloned[rowIndex].reporting_times[dayIndex] = nextValue || null
       return cloned
     })
   }
@@ -290,6 +307,15 @@ export default function RosteringEnginePage() {
               searchable={false}
             />
           </label>
+          <label>
+            Reporting Day
+            <SearchDropdown
+              options={headers.map((h) => ({ value: String(h.day), label: `${h.day} ${h.weekday}` }))}
+              value={String(reportingDay)}
+              onChange={(next) => setReportingDay(Number(next))}
+              searchable={false}
+            />
+          </label>
           <button type="button" className="btn-secondary" onClick={() => applyBulkStatus(filteredRows)}>
             Apply To Selected ({selectedVisibleCount})
           </button>
@@ -303,6 +329,7 @@ export default function RosteringEnginePage() {
                 <th className="sticky-col sticky-col-2">Officer</th>
                 <th className="sticky-col sticky-col-3">Team</th>
                 <th className="sticky-col sticky-col-4">Pattern</th>
+                <th>Reporting Time</th>
                 {headers.map((day) => (
                   <th key={day.day}>
                     {day.day}<br />
@@ -315,7 +342,7 @@ export default function RosteringEnginePage() {
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={headers.length + 6} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
+                  <td colSpan={headers.length + 7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
                     No roster data loaded. Click Generate Roster above.
                   </td>
                 </tr>
@@ -324,6 +351,8 @@ export default function RosteringEnginePage() {
                   const rowIdx = rows.findIndex((source) => source.employee_id === row.employee_id)
                   const isSelected = selectedOfficerIds.has(row.employee_id)
                   const forecast = calculateForecast(row.schedule)
+                  const reportingIndex = Math.max(0, Math.min(headers.length - 1, reportingDay - 1))
+                  const reportingValue = row.reporting_times?.[reportingIndex] || ''
                   return (
                   <tr key={row.key}>
                     <td className="sticky-col sticky-col-1">
@@ -336,6 +365,14 @@ export default function RosteringEnginePage() {
                     <td className="sticky-col sticky-col-2">{row.serial_number}. {row.name} ({row.staff_id})</td>
                     <td className="sticky-col sticky-col-3">{row.team}</td>
                     <td className="sticky-col sticky-col-4">{row.shift_pattern}</td>
+                    <td>
+                      <input
+                        type="time"
+                        className="cell-select"
+                        value={reportingValue}
+                        onChange={(e) => updateReportingTime(rowIdx, reportingIndex, e.target.value)}
+                      />
+                    </td>
                     {row.schedule.map((value, dayIdx) => (
                       <td key={`${row.key}-${dayIdx}`} className={`status-${value.toLowerCase()}`}>
                         {value === 'EMPTY' ? (
@@ -362,7 +399,7 @@ export default function RosteringEnginePage() {
               )}
               {filteredRows.length > 0 && (
                 <tr className="summary-row">
-                  <td colSpan={4} className="sticky-col sticky-col-summary">Planned Manpower (W + OT1 + OT2)</td>
+                  <td colSpan={5} className="sticky-col sticky-col-summary">Planned Manpower (W + OT1 + OT2)</td>
                   {summaryByDay.map((count, idx) => (
                     <td key={`sum-${idx}`}>{count}</td>
                   ))}
