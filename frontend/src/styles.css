@@ -879,7 +879,7 @@ button:active,
 
 .door4-workspace-grid {
   display: grid;
-  grid-template-columns: 460px 1fr;
+  grid-template-columns: 390px 1fr;
   gap: 10px;
 }
 
@@ -887,10 +887,26 @@ button:active,
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface);
-  padding: 12px;
+  padding: 10px;
   min-height: 420px;
   max-height: calc(100vh - 240px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.door4-pool-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
+  padding-bottom: 6px;
+}
+
+.door4-pool-scroll {
   overflow: auto;
+  flex: 1;
+  padding-right: 2px;
 }
 
 .door4-pool-header {
@@ -932,14 +948,14 @@ button:active,
 
 .door4-manpower-cards {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .door4-manpower-card {
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%) 0%, var(--surface) 100%);
-  padding: 6px 8px 5px;
+  padding: 5px 7px 4px;
   cursor: grab;
 }
 
@@ -953,20 +969,20 @@ button:active,
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .door4-manpower-card-head strong {
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.2;
   color: var(--text);
 }
 
 .door4-manpower-gates {
-  font-size: 38px;
+  font-size: 28px;
   font-weight: 900;
   color: var(--accent-text);
-  line-height: 0.9;
+  line-height: 0.95;
 }
 
 .door4-manpower-meta {
@@ -976,7 +992,7 @@ button:active,
 }
 
 .door4-manpower-meta span {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-secondary);
   line-height: 1.15;
 }
@@ -1098,11 +1114,17 @@ button:active,
 .door4-board-header-right {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
 }
 
 .door4-table-search {
   min-width: 180px;
+}
+
+.door4-board-stats {
+  white-space: nowrap;
 }
 
 .door4-agentic-toggle {
@@ -1112,6 +1134,14 @@ button:active,
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 6px 10px;
+}
+
+.door4-terminal-filter-row {
+  display: inline-flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: flex-end;
+  margin-top: -2px;
 }
 
 .door4-switch {
@@ -1166,6 +1196,14 @@ button:active,
 
 .door4-flight-table {
   width: 100%;
+}
+
+.door4-flight-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--accent-subtle) 55%, var(--surface) 45%);
+  color: #ffffff;
 }
 
 .door4-flight-break-row td {
@@ -1232,17 +1270,104 @@ button:active,
 }
 
 .door4-flight-beacon-icon.is-detected {
-  color: #60a5fa;
+  color: #22c55e;
+}
+
+.door4-pax-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+  min-width: 96px;
+}
+
+.door4-pax-gauge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.door4-pax-gauge-placeholder {
+  opacity: 0;
+}
+
+.door4-pax-badge-placeholder {
+  display: inline-block;
+  width: 58px;
+  height: 18px;
+  opacity: 0;
+}
+
+.door4-pax-icon-red {
+  color: #ef4444;
+}
+
+.door4-pax-icon-amber {
+  color: #f59e0b;
+}
+
+.door4-pax-icon-green {
+  color: #22c55e;
 }
 
 .door4-remarks-input {
-  min-width: 160px;
+  min-width: 110px;
   width: 100%;
+  padding: 3px 7px;
+  font-size: 11px;
+  line-height: 1.2;
+  min-height: 26px;
 }
 
 .door4-task-input {
   min-width: 140px;
   width: 100%;
+}
+
+.door4-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.door4-modal {
+  width: min(520px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+}
+
+.door4-modal h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.door4-create-team-dropzone {
+  border: 1px dashed var(--accent);
+  border-radius: var(--r-md);
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-subtle) 45%, var(--surface) 55%);
+}
+
+.door4-create-team-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
 }
 
 

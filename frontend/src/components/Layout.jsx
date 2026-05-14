@@ -150,6 +150,14 @@ const navItems = [
     groupKey: 'deployment',
   },
   {
+    to: '/deployment-board/preboard/config',
+    label: 'Preboard Config',
+    icon: FileText,
+    subtitle: 'Configure Terminal, GHR, and Gate Type for Preboard.',
+    subnav: true,
+    groupKey: 'deployment',
+  },
+  {
     to: '/deployment-board',
     label: 'Deployment Board',
     icon: LayoutGrid,
@@ -242,6 +250,7 @@ export default function Layout({ children, darkMode, onToggleDarkMode }) {
   const location = useLocation()
   const meta = resolveMeta(location.pathname)
   const hidePageHeader = location.pathname.startsWith('/deployment-board/door-4/deployment')
+    || location.pathname.startsWith('/deployment-board/preboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [apiTokenInput, setApiTokenInput] = useState('')
   const [trainingExpanded, setTrainingExpanded] = useState(true)

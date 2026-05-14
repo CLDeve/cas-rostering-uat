@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Radio, Sparkles, XCircle } from 'lucide-react'
+import { Sparkles, ThumbsUp, XCircle } from 'lucide-react'
 import {
+  getDoor4ArrivalFlights,
   getDoor4DepartureFlights,
   getDeploymentAssignments,
   listDeployments,
@@ -12,6 +13,7 @@ import {
 import SearchDropdown from '../components/SearchDropdown'
 
 const DEFAULT_SLOT_CAPACITY = 25
+const PREBOARD_MAX_TEAMS_PER_FLIGHT = 5
 const DEPLOYMENT_SCOPES = {
   all: { label: 'Deployment Board', aliases: [], locked: false },
   'door-4': { label: 'Door 4', aliases: ['door 4', 'door4'], locked: true },
@@ -187,6 +189,34 @@ function getFlightValue(row, keys) {
   return '—'
 }
 
+function normalizeFieldKey(key) {
+  return String(key || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function findNestedValueByKeys(row, keys) {
+  const wanted = new Set(keys.map(normalizeFieldKey))
+  const queue = [row]
+  const seen = new Set()
+  while (queue.length) {
+    const current = queue.shift()
+    if (!current || typeof current !== 'object') continue
+    if (seen.has(current)) continue
+    seen.add(current)
+    if (Array.isArray(current)) {
+      current.forEach((item) => queue.push(item))
+      continue
+    }
+    for (const [rawKey, value] of Object.entries(current)) {
+      const key = normalizeFieldKey(rawKey)
+      if (wanted.has(key) && value !== undefined && value !== null && String(value).trim() !== '') {
+        return String(value)
+      }
+      if (value && typeof value === 'object') queue.push(value)
+    }
+  }
+  return '—'
+}
+
 function getFlightTimeValue(row, keys) {
   for (const key of keys) {
     const value = String(key).includes('.') ? readPath(row, key) : row?.[key]
@@ -253,9 +283,72 @@ function normalizeTerminalValue(value) {
   return raw
 }
 
+function deriveTerminalFromGate(gateValue) {
+  const text = String(gateValue || '').trim().toUpperCase()
+  if (!text || text === '—') return ''
+  const prefix = text.match(/^([A-Z])/)
+  if (prefix) {
+    const byPrefix = {
+      A: 'T1',
+      B: 'T1',
+      C: 'T1',
+      D: 'T1',
+      E: 'T2',
+      F: 'T2',
+      G: 'T3',
+      H: 'T4',
+    }
+    if (byPrefix[prefix[1]]) return byPrefix[prefix[1]]
+  }
+  const match = text.match(/(?:^|[^A-Z0-9])T([1-4])(?:[^0-9]|$)/) || text.match(/^([1-4])[A-Z0-9-]*$/)
+  return match ? `T${match[1]}` : ''
+}
+
 function isAssignableFlightStatus(status) {
   const text = String(status || '').toLowerCase()
   return !text.includes('cancel')
+}
+
+function pseudoRandomPaxPercent(seed) {
+  const text = String(seed || '')
+  let hash = 0
+  for (let i = 0; i < text.length; i += 1) hash = ((hash * 31) + text.charCodeAt(i)) >>> 0
+  return hash % 101
+}
+
+function paxBadgeClass(percent) {
+  if (percent <= 50) return 'badge-red'
+  if (percent <= 89) return 'badge-amber'
+  return 'badge-green'
+}
+
+function paxIconClass(percent) {
+  if (percent <= 50) return 'door4-pax-icon-red'
+  if (percent <= 89) return 'door4-pax-icon-amber'
+  return 'door4-pax-icon-green'
+}
+
+function shouldShowPaxBadge(status) {
+  const text = String(status || '').toLowerCase()
+  if (text.includes('cancel')) return false
+  if (text.includes('scheduled')) return false
+  if (text.includes('new gate')) return false
+  if (text.includes('re-timed') || text.includes('retimed') || text.includes('re timed')) return false
+  return true
+}
+
+function statusBadgeClass(status) {
+  const text = String(status || '').toLowerCase()
+  if (text.includes('cancel')) return 'badge-red'
+  if (text.includes('gate closing')) return 'badge-red'
+  if (text.includes('gate open')) return 'badge-green'
+  if (text.includes('new gate')) return 'badge-amber'
+  if (text.includes('re-timed') || text.includes('retimed') || text.includes('re timed')) return 'badge-blue'
+  if (text.includes('scheduled')) return 'badge-blue'
+  if (text.includes('boarding')) return 'badge-amber'
+  if (text.includes('last call')) return 'badge-amber'
+  if (text.includes('landed')) return 'badge-blue'
+  return 'badge-blue'
 }
 
 function compareDoor4Flights(a, b) {
@@ -275,9 +368,14 @@ function compareDoor4Flights(a, b) {
 }
 
 function getFlightDisplay(row) {
-  const gate = getFlightValue(row, [
+  const gateFromDirectKeys = getFlightValue(row, [
     'display_gate',
     'current_gate',
+    'departure_gate',
+    'dep_gate',
+    'gate_display',
+    'gate_display_name',
+    'boarding_gate',
     'display_parkingstand',
     'scheduled_gate',
     'gate',
@@ -292,8 +390,53 @@ function getFlightDisplay(row) {
     'bay',
     'arrivalGate',
     'arrival_gate',
+    'leg.gate',
+    'flight.gate',
+    'departure.gate',
   ])
-  const terminal = getFlightValue(row, ['display_terminal', 'terminal', 'terminalCode', 'terminalNo', 'terminal_no', 'term'])
+  const terminalFromDirectKeys = getFlightValue(row, [
+    'display_terminal',
+    'terminal',
+    'terminal_display',
+    'terminal_display_name',
+    'terminalCode',
+    'terminal_code',
+    'terminalName',
+    'terminal_name',
+    'terminalNo',
+    'terminal_no',
+    'term',
+    'flightTerminal',
+    'flight_terminal',
+    'departureTerminal',
+    'departure_terminal',
+    'dep_terminal',
+    'departure.terminal',
+    'flight.terminal',
+    'leg.terminal',
+  ])
+  const gate = gateFromDirectKeys !== '—'
+    ? gateFromDirectKeys
+    : findNestedValueByKeys(row, [
+      'gate',
+      'gateno',
+      'gatenumber',
+      'boardinggate',
+      'departuregate',
+      'displaygate',
+      'currentgate',
+    ])
+  const terminal = terminalFromDirectKeys !== '—'
+    ? terminalFromDirectKeys
+    : findNestedValueByKeys(row, [
+      'terminal',
+      'terminalno',
+      'terminalcode',
+      'terminalname',
+      'displayterminal',
+      'departureterminal',
+      'depterminal',
+    ])
   const flight = getFlightValue(row, ['flightno', 'flight_no', 'flightNumber', 'flight'])
   const eta = getFlightTimeValue(row, [
     'ext_display_time',
@@ -333,9 +476,11 @@ function getFlightDisplay(row) {
   const door = getFlightValue(row, ['door', 'doorNo', 'door_no', 'deploymentDoor', 'assignment'])
   const status = getFlightValue(row, ['flight_status', 'status', 'flightStatus', 'flightstatus', 'remarks'])
 
+  const normalizedTerminal = normalizeTerminalValue(terminal) || deriveTerminalFromGate(gate) || 'T?'
+
   return {
     gate,
-    terminal: terminal === '—' ? 'T?' : terminal,
+    terminal: normalizedTerminal,
     flight,
     eta: formatFlightTime(eta),
     scheduled: formatFlightTime(scheduled),
@@ -394,8 +539,14 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   const [flightAssignments, setFlightAssignments] = useState({})
   const [flightBeaconDetected, setFlightBeaconDetected] = useState({})
   const [flightRemarks, setFlightRemarks] = useState({})
-  const [flightTasks, setFlightTasks] = useState({})
   const [flightGateChanges, setFlightGateChanges] = useState({})
+  const [preboardManpowerView, setPreboardManpowerView] = useState('teams')
+  const [preboardFlightTeams, setPreboardFlightTeams] = useState({})
+  const [selectedPreboardTerminals, setSelectedPreboardTerminals] = useState(['T1', 'T2', 'T3', 'T4'])
+  const [officerTeamOverrides, setOfficerTeamOverrides] = useState({})
+  const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
+  const [createTeamName, setCreateTeamName] = useState('')
+  const [createTeamOfficerIds, setCreateTeamOfficerIds] = useState([])
 
   const activeSites = useMemo(
     () => filterSitesForDate(allSites, selectedDate),
@@ -471,7 +622,9 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     setDoor4FlightStatus('Loading Door 4 flights...')
     setDoor4HiddenRevealCount(0)
     try {
-      const payload = await getDoor4DepartureFlights(selectedDate, door4FlightNo)
+      const payload = routeScopeKey === 'door-4'
+        ? await getDoor4ArrivalFlights(selectedDate, door4FlightNo)
+        : await getDoor4DepartureFlights(selectedDate, door4FlightNo)
       const rows = getFlightRows(payload)
       const previousGateByKey = new Map(
         door4Flights.map((row, index) => [getFlightRowKey(row, index), getFlightDisplay(row).gate])
@@ -487,7 +640,6 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       })
       setDoor4Flights(rows)
       setFlightRemarks({})
-      setFlightTasks({})
       setFlightGateChanges(nextGateChanges)
       const changedCount = Object.keys(nextGateChanges).length
       setDoor4FlightStatus(
@@ -496,7 +648,6 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     } catch (err) {
       setDoor4Flights([])
       setFlightRemarks({})
-      setFlightTasks({})
       setFlightGateChanges({})
       setDoor4FlightStatus(`Unable to load Door 4 flights: ${err.message}`)
     } finally {
@@ -542,7 +693,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   }, [scope, scopedSiteId, selectedDate])
 
   useEffect(() => {
-    if (routeScopeKey !== 'door-4') return
+    if (routeScopeKey !== 'door-4' && routeScopeKey !== 'preboard') return
     loadDoor4Flights()
   }, [routeScopeKey, selectedDate])
 
@@ -634,7 +785,21 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   }
 
   function onOfficerDragStart(event, officerId) {
-    event.dataTransfer.setData('text/plain', String(officerId))
+    event.dataTransfer.setData('text/plain', `officer::${String(officerId)}`)
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  function parseDraggedOfficerId(event) {
+    const plain = String(event.dataTransfer.getData('text/plain') || '').trim()
+    if (!plain) return ''
+    if (plain.startsWith('officer::')) return plain.slice('officer::'.length).trim()
+    if (plain.startsWith('team::')) return ''
+    return plain
+  }
+
+  function onTeamDragStart(event, teamName) {
+    event.dataTransfer.setData('application/x-team-name', String(teamName))
+    event.dataTransfer.setData('text/plain', `team::${String(teamName)}`)
     event.dataTransfer.effectAllowed = 'move'
   }
 
@@ -645,21 +810,21 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
 
   function onDropToSlot(event, siteId, slotIndex) {
     event.preventDefault()
-    const officerId = event.dataTransfer.getData('text/plain')
+    const officerId = parseDraggedOfficerId(event)
     if (!officerId) return
     assignOfficer(officerId, siteId, slotIndex)
   }
 
   function onDropToPool(event) {
     event.preventDefault()
-    const officerId = event.dataTransfer.getData('text/plain')
+    const officerId = parseDraggedOfficerId(event)
     if (!officerId) return
     unassignOfficer(officerId)
   }
 
   function onDropToRedCross(event) {
     event.preventDefault()
-    const officerId = event.dataTransfer.getData('text/plain')
+    const officerId = parseDraggedOfficerId(event)
     if (!officerId) return
     setRedCrossOfficerIds((prev) => (prev.includes(String(officerId)) ? prev : [...prev, String(officerId)]))
     setFlightAssignments((prev) => {
@@ -673,7 +838,31 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
 
   function onDropToFlight(event, flightKey) {
     event.preventDefault()
-    const officerId = event.dataTransfer.getData('text/plain')
+    const customTeam = event.dataTransfer.getData('application/x-team-name')
+    const plain = String(event.dataTransfer.getData('text/plain') || '').trim()
+    const parsedTeam = plain.startsWith('team::') ? plain.slice('team::'.length) : ''
+    const draggedTeamName = customTeam || parsedTeam
+    if (isPreboardScope && draggedTeamName) {
+      const teamName = String(draggedTeamName).trim()
+      if (!teamName) return
+      const targetFlight = displayedDoor4Flights.find((flight, index) => getFlightRowKey(flight, index) === flightKey)
+      if (targetFlight && !isAssignableFlightStatus(getFlightDisplay(targetFlight).status)) {
+        setDoor4FlightStatus('Cancelled flights cannot receive manpower assignments.')
+        return
+      }
+      setPreboardFlightTeams((prev) => {
+        const current = Array.isArray(prev[flightKey]) ? prev[flightKey] : []
+        if (current.includes(teamName)) return prev
+        if (current.length >= PREBOARD_MAX_TEAMS_PER_FLIGHT) {
+          setDoor4FlightStatus(`Maximum ${PREBOARD_MAX_TEAMS_PER_FLIGHT} teams allowed per flight.`)
+          return prev
+        }
+        return { ...prev, [flightKey]: [...current, teamName] }
+      })
+      return
+    }
+    const parsedOfficerId = plain.startsWith('officer::') ? plain.slice('officer::'.length) : plain
+    const officerId = parsedOfficerId
     if (!officerId) return
     if (redCrossOfficerIds.includes(String(officerId))) return
     const targetFlight = displayedDoor4Flights.find((flight, index) => getFlightRowKey(flight, index) === flightKey)
@@ -685,6 +874,14 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   }
 
   function clearFlightAssignment(flightKey) {
+    if (isPreboardScope) {
+      setPreboardFlightTeams((prev) => {
+        if (!prev[flightKey]) return prev
+        const next = { ...prev }
+        delete next[flightKey]
+        return next
+      })
+    }
     setFlightAssignments((prev) => {
       if (!prev[flightKey]) return prev
       const next = { ...prev }
@@ -701,11 +898,58 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     setFlightRemarks((prev) => ({ ...prev, [flightKey]: value }))
   }
 
-  function setFlightTask(flightKey, value) {
-    setFlightTasks((prev) => ({ ...prev, [flightKey]: value }))
+  function openCreateTeamModal() {
+    setCreateTeamName('')
+    setCreateTeamOfficerIds([])
+    setIsCreateTeamOpen(true)
   }
 
-  const isDoor4Scope = routeScopeKey === 'door-4'
+  function onDropToCreateTeam(event) {
+    event.preventDefault()
+    const officerId = parseDraggedOfficerId(event)
+    if (!officerId) return
+    if (redCrossOfficerIds.includes(String(officerId))) return
+    setCreateTeamOfficerIds((prev) => (prev.includes(String(officerId)) ? prev : [...prev, String(officerId)]))
+  }
+
+  function removeOfficerFromCreateTeam(officerId) {
+    setCreateTeamOfficerIds((prev) => prev.filter((id) => String(id) !== String(officerId)))
+  }
+
+  function submitCreateTeam() {
+    const teamName = createTeamName.trim()
+    if (!teamName) {
+      setDoor4FlightStatus('Team name is required.')
+      return
+    }
+    if (createTeamOfficerIds.length === 0) {
+      setDoor4FlightStatus('Drag at least one officer into the team.')
+      return
+    }
+    setOfficerTeamOverrides((prev) => {
+      const next = { ...prev }
+      createTeamOfficerIds.forEach((officerId) => {
+        next[String(officerId)] = teamName
+      })
+      return next
+    })
+    setPreboardManpowerView('teams')
+    setDoor4FlightStatus(`Created team "${teamName}" with ${createTeamOfficerIds.length} officer${createTeamOfficerIds.length === 1 ? '' : 's'}.`)
+    setIsCreateTeamOpen(false)
+    setCreateTeamName('')
+    setCreateTeamOfficerIds([])
+  }
+
+  function togglePreboardTerminal(terminal) {
+    setSelectedPreboardTerminals((prev) => {
+      if (prev.includes(terminal)) return prev.filter((item) => item !== terminal)
+      return [...prev, terminal]
+    })
+  }
+
+  const isDoor4Scope = routeScopeKey === 'door-4' || routeScopeKey === 'preboard'
+  const isPreboardScope = routeScopeKey === 'preboard'
+  const getOfficerTeamName = (officer) => officerTeamOverrides[String(officer.id)] || officer.team || 'Unassigned Team'
   const availableOfficers = useMemo(
     () => allOfficers.filter((officer) => !officerToSite[String(officer.id)]),
     [allOfficers, officerToSite],
@@ -724,6 +968,18 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       return name.includes(q) || staffId.includes(q)
     })
   }, [availableOfficers, redCrossOfficerIds, officerSearch])
+  const preboardTeamCards = useMemo(() => {
+    const grouped = new Map()
+    visibleAvailableOfficers.forEach((officer) => {
+      const teamName = String(getOfficerTeamName(officer)).trim() || 'Unassigned Team'
+      const current = grouped.get(teamName) || []
+      current.push(officer)
+      grouped.set(teamName, current)
+    })
+    return Array.from(grouped.entries())
+      .map(([teamName, officers]) => ({ teamName, officers }))
+      .sort((a, b) => a.teamName.localeCompare(b.teamName))
+  }, [visibleAvailableOfficers, officerTeamOverrides])
   const selectedDateDoor4Flights = useMemo(
     () => door4Flights.filter((row) => {
       const flightDate = getFlightDateIso(row)
@@ -746,12 +1002,17 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   )
   const filteredDisplayedDoor4Flights = useMemo(() => {
     const q = door4TableSearch.trim().toLowerCase()
-    if (!q) return displayedDoor4Flights
-    return displayedDoor4Flights.filter((row) => {
+    const searched = !q ? displayedDoor4Flights : displayedDoor4Flights.filter((row) => {
       const item = getFlightDisplay(row)
       return String(item.gate || '').toLowerCase().includes(q) || String(item.flight || '').toLowerCase().includes(q)
     })
-  }, [displayedDoor4Flights, door4TableSearch])
+    if (!isPreboardScope) return searched
+    return searched.filter((row) => {
+      const terminal = normalizeTerminalValue(getFlightDisplay(row).terminal)
+      if (!terminal) return true
+      return selectedPreboardTerminals.includes(terminal)
+    })
+  }, [displayedDoor4Flights, door4TableSearch, isPreboardScope, selectedPreboardTerminals])
   const door4FlightsWithDateBreaks = useMemo(() => {
     const rows = []
     let lastDate = ''
@@ -972,7 +1233,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
               minWidth={260}
             />
           )}
-          {routeScopeKey === 'door-4' && (
+          {isDoor4Scope && (
             <>
               <input
                 placeholder="Flight No. (optional)"
@@ -991,13 +1252,13 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
             </>
           )}
         </div>
-        {scope.locked && (
+        {scope.locked && !isPreboardScope && (
           <div className="status">
             Scope: <strong>{scope.label}</strong>
           </div>
         )}
-        {status && <div className={`alert alert-${alertType(status)}`}>{status}</div>}
-        {routeScopeKey === 'door-4' && door4FlightStatus && (
+        {status && !isPreboardScope && <div className={`alert alert-${alertType(status)}`}>{status}</div>}
+        {isDoor4Scope && door4FlightStatus && !isPreboardScope && (
           <div className={`alert alert-${alertType(door4FlightStatus)}`}>{door4FlightStatus}</div>
         )}
       </section>
@@ -1005,29 +1266,45 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       {isDoor4Scope ? (
         <section className="door4-workspace-grid">
           <article className="panel door4-pool" onDragOver={allowDrop} onDrop={onDropToPool}>
-            <div className="door4-pool-header">
-              <h3>{redCrossExpanded ? `Red Cross Officers (${redCrossOfficers.length})` : `Available Officers (${visibleAvailableOfficers.length})`}</h3>
-              <button type="button" className="btn-secondary">Add Officer</button>
-            </div>
-            <input
-              className="door4-officer-search"
-              placeholder="Search name or staff ID"
-              value={officerSearch}
-              onChange={(e) => setOfficerSearch(e.target.value)}
-            />
-            <div className="door4-red-cross-zone" onDragOver={allowDrop} onDrop={onDropToRedCross}>
-              <div className="door4-red-cross-header" onClick={() => setRedCrossExpanded((v) => !v)}>
-                <XCircle size={14} />
-                <strong>Red Cross List ({redCrossOfficers.length})</strong>
-                <span className="muted">{redCrossExpanded ? 'Hide' : 'Show'}</span>
+            <div className="door4-pool-sticky">
+              <div className="door4-pool-header">
+                <h3>{isPreboardScope ? `${preboardManpowerView === 'teams' ? 'Teams' : 'Officers'} (${preboardManpowerView === 'teams' ? preboardTeamCards.length : visibleAvailableOfficers.length})` : (redCrossExpanded ? `Red Cross Officers (${redCrossOfficers.length})` : `Available Officers (${visibleAvailableOfficers.length})`)}</h3>
+                <div className="toolbar-row" style={{ gap: 8 }}>
+                  <button type="button" className="btn-secondary">Add Officer</button>
+                  {isPreboardScope && preboardManpowerView === 'officers' && (
+                    <button type="button" className="btn-secondary" onClick={openCreateTeamModal}>
+                      Create Team
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="muted">
-                {redCrossOfficers.length === 0
-                  ? 'Drag officer here to exclude from available pool.'
-                  : 'Officers hidden from available pool. Drop more here, or click Reset to restore all.'}
+              {isPreboardScope && (
+                <div className="toolbar-row" style={{ marginBottom: 8 }}>
+                  <button type="button" className={preboardManpowerView === 'teams' ? '' : 'btn-secondary'} onClick={() => setPreboardManpowerView('teams')}>Teams</button>
+                  <button type="button" className={preboardManpowerView === 'officers' ? '' : 'btn-secondary'} onClick={() => setPreboardManpowerView('officers')}>Officers</button>
+                </div>
+              )}
+              <input
+                className="door4-officer-search"
+                placeholder="Search name or staff ID"
+                value={officerSearch}
+                onChange={(e) => setOfficerSearch(e.target.value)}
+              />
+              <div className="door4-red-cross-zone" onDragOver={allowDrop} onDrop={onDropToRedCross}>
+                <div className="door4-red-cross-header" onClick={() => setRedCrossExpanded((v) => !v)}>
+                  <XCircle size={14} />
+                  <strong>Red Cross List ({redCrossOfficers.length})</strong>
+                  <span className="muted">{redCrossExpanded ? 'Hide' : 'Show'}</span>
+                </div>
+                <div className="muted">
+                  {redCrossOfficers.length === 0
+                    ? 'Drag officer here to exclude from available pool.'
+                    : 'Officers hidden from available pool. Drop more here, or click Reset to restore all.'}
+                </div>
               </div>
             </div>
-            {redCrossExpanded ? (
+            <div className="door4-pool-scroll">
+              {!isPreboardScope && redCrossExpanded ? (
               redCrossOfficers.length === 0 ? (
                 <div className="door4-empty">No officers in Red Cross list.</div>
               ) : (
@@ -1039,7 +1316,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                       </div>
                       <div className="door4-manpower-meta">
                         <span>Staff ID: {officer.staff_id}</span>
-                        <span>Team: {officer.team}</span>
+                        <span>Team: {getOfficerTeamName(officer)}</span>
                         <span>Rank: {officer.rank}</span>
                         <span>Terminal: {officer.terminal || '—'}</span>
                       </div>
@@ -1047,7 +1324,29 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                   ))}
                 </div>
               )
-            ) : (
+              ) : isPreboardScope && preboardManpowerView === 'teams' ? (
+              <div className="door4-manpower-cards">
+                {preboardTeamCards.map((team) => (
+                  <article
+                    key={team.teamName}
+                    className="door4-manpower-card"
+                    draggable
+                    onDragStart={(event) => onTeamDragStart(event, team.teamName)}
+                  >
+                    <div className="door4-manpower-card-head">
+                      <strong>{team.teamName}</strong>
+                      <span className="door4-manpower-gates">{team.officers.length}</span>
+                    </div>
+                    <div className="door4-manpower-meta">
+                      {team.officers.slice(0, 3).map((officer) => (
+                        <span key={officer.id}>{officer.name}</span>
+                      ))}
+                      {team.officers.length > 3 && <span>+{team.officers.length - 3} more</span>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+              ) : (
               <div className="door4-manpower-cards">
                 {visibleAvailableOfficers.map((officer) => (
                   <article
@@ -1062,7 +1361,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     </div>
                     <div className="door4-manpower-meta">
                       <span>Staff ID: {officer.staff_id}</span>
-                      <span>Team: {officer.team}</span>
+                      <span>Team: {getOfficerTeamName(officer)}</span>
                       <span>Rank: {officer.rank}</span>
                       <span>Terminal: {officer.terminal || '—'}</span>
                       <span>Start: {officer.start_date || '—'}</span>
@@ -1071,12 +1370,13 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                   </article>
                 ))}
               </div>
-            )}
+              )}
+            </div>
           </article>
 
           <section className="panel door4-flight-board">
             <div className="door4-board-header">
-              <h2>Door 4 Arrival Flights</h2>
+              <h2>{isPreboardScope ? 'Preboard Departure Flights' : 'Door 4 Arrival Flights'}</h2>
               <div className="door4-board-header-right">
                 <input
                   className="door4-table-search"
@@ -1084,7 +1384,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                   value={door4TableSearch}
                   onChange={(e) => setDoor4TableSearch(e.target.value)}
                 />
-                <span>{selectedDate} · Departed Hidden {hiddenDoor4Flights.length} · Unhidden {Math.min(door4HiddenRevealCount, hiddenDoor4Flights.length)}/{hiddenDoor4Flights.length}</span>
+                <span className="door4-board-stats">{selectedDate} · Departed Hidden {hiddenDoor4Flights.length} · Unhidden {Math.min(door4HiddenRevealCount, hiddenDoor4Flights.length)}/{hiddenDoor4Flights.length}</span>
                 <div className="door4-agentic-toggle">
                   <Sparkles size={14} strokeWidth={2.25} />
                   <span>Agentic AI</span>
@@ -1111,6 +1411,20 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     <span className="door4-switch-knob" />
                   </button>
                 </div>
+                {isPreboardScope && (
+                  <div className="door4-terminal-filter-row">
+                    {['T1', 'T2', 'T3', 'T4'].map((terminal) => (
+                      <button
+                        key={terminal}
+                        type="button"
+                        className={selectedPreboardTerminals.includes(terminal) ? '' : 'btn-secondary'}
+                        onClick={() => togglePreboardTerminal(terminal)}
+                      >
+                        {terminal}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="toolbar-row" style={{ marginBottom: 6 }}>
@@ -1135,7 +1449,6 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     <th>ETA</th>
                     <th>SCH</th>
                     <th>OFFICER / DOOR</th>
-                    <th>TASK</th>
                     <th>REMARKS</th>
                   </tr>
                 </thead>
@@ -1144,7 +1457,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     if (entry.type === 'date') {
                       return (
                         <tr key={entry.key} className="door4-flight-break-row">
-                          <td colSpan={9}>{entry.label}</td>
+                          <td colSpan={8}>{entry.label}</td>
                         </tr>
                       )
                     }
@@ -1153,8 +1466,11 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     const key = entry.key
                     const isCancelledFlight = !isAssignableFlightStatus(item.status)
                     const assignedOfficer = allOfficers.find((o) => String(o.id) === String(flightAssignments[key]))
+                    const assignedTeams = Array.isArray(preboardFlightTeams[key]) ? preboardFlightTeams[key] : []
                     const officerText = isCancelledFlight
                       ? 'Cancelled - no manpower'
+                      : isPreboardScope
+                        ? (assignedTeams.length > 0 ? `Teams: ${assignedTeams.join(', ')}` : 'Drop team here')
                       : assignedOfficer ? `${assignedOfficer.name} (${assignedOfficer.staff_id})` : (item.officer === 'Unassigned' ? 'Drop officer here' : item.officer)
                     return (
                       <tr key={key} onDragOver={allowDrop} onDrop={(e) => onDropToFlight(e, key)}>
@@ -1170,7 +1486,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                           </div>
                         </td>
                         <td>{item.flight}</td>
-                        <td><span className="badge badge-blue">{item.status}</span></td>
+                        <td><span className={`badge ${statusBadgeClass(item.status)}`}>{item.status}</span></td>
                         <td>{item.eta}</td>
                         <td>{item.scheduled}</td>
                         <td>
@@ -1178,21 +1494,32 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                             <span>{officerText}</span>
                             {!isCancelledFlight && <div className="door4-flight-officer-actions">
                               <button type="button" className="door4-beacon-toggle" onClick={() => toggleFlightBeaconDetected(key)}>
-                                <Radio size={14} className={`door4-flight-beacon-icon ${flightBeaconDetected[key] ? 'is-detected' : 'is-not-detected'}`} />
+                                <span className={`door4-flight-beacon-icon ${flightBeaconDetected[key] ? 'is-detected' : 'is-not-detected'}`} style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>Q</span>
                               </button>
                               <span className="badge badge-blue">AI</span>
-                              <button type="button" className="btn-secondary btn-sm" onClick={() => clearFlightAssignment(key)}>Clear</button>
+                              <span className="door4-pax-slot">
+                                {shouldShowPaxBadge(item.status) && (
+                                  <>
+                                    <span className="door4-pax-gauge">
+                                      <ThumbsUp size={16} className={paxIconClass(pseudoRandomPaxPercent(key))} aria-hidden="true" />
+                                    </span>
+                                    <span className={`badge ${paxBadgeClass(pseudoRandomPaxPercent(key))}`}>{`PAX ${pseudoRandomPaxPercent(key)}%`}</span>
+                                  </>
+                                )}
+                                {!shouldShowPaxBadge(item.status) && (
+                                  <>
+                                    <span className="door4-pax-gauge door4-pax-gauge-placeholder">
+                                      <ThumbsUp size={16} aria-hidden="true" />
+                                    </span>
+                                    <span className="door4-pax-badge-placeholder" />
+                                  </>
+                                )}
+                              </span>
+                              {!isPreboardScope && (
+                                <button type="button" className="btn-secondary btn-sm" onClick={() => clearFlightAssignment(key)}>Clear</button>
+                              )}
                             </div>}
                           </div>
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="door4-task-input"
-                            placeholder="Add task"
-                            value={flightTasks[key] || ''}
-                            onChange={(e) => setFlightTask(key, e.target.value)}
-                          />
                         </td>
                         <td>
                           <input
@@ -1334,6 +1661,44 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
           )}
         </div>
       </section>
+      )}
+
+      {isCreateTeamOpen && (
+        <div className="door4-modal-backdrop">
+          <div className="door4-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Create Team</h3>
+            <input
+              type="text"
+              placeholder="Team name"
+              value={createTeamName}
+              onChange={(e) => setCreateTeamName(e.target.value)}
+            />
+            <div className="door4-create-team-dropzone" onDragOver={allowDrop} onDrop={onDropToCreateTeam}>
+              Drag officers here
+            </div>
+            <div className="door4-create-team-selected">
+              {createTeamOfficerIds.length === 0 && <span className="muted">No officers selected yet.</span>}
+              {createTeamOfficerIds.map((officerId) => {
+                const officer = allOfficers.find((row) => String(row.id) === String(officerId))
+                if (!officer) return null
+                return (
+                  <button
+                    key={`selected-officer-${officer.id}`}
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => removeOfficerFromCreateTeam(officer.id)}
+                  >
+                    {officer.name} ×
+                  </button>
+                )
+              })}
+            </div>
+            <div className="toolbar-row">
+              <button type="button" className="btn-secondary" onClick={() => setIsCreateTeamOpen(false)}>Cancel</button>
+              <button type="button" onClick={submitCreateTeam} disabled={createTeamOfficerIds.length < 2}>Create</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

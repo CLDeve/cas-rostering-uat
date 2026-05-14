@@ -328,15 +328,17 @@ def list_deployment_sites(
     return service.list_sites()
 
 
-def _list_door_4_arrival_flights_impl(
+def _list_door_4_flights_impl(
     tixdate: date = Query(...),
     flightno: str | None = Query(default=None),
+    movement_type: str = "departure",
 ) -> Any:
     params = {
-        "date": tixdate.isoformat(),
-        "type": "scheduled",
-        "flightno": (flightno or "").strip(),
+        "tixdate": tixdate.isoformat(),
     }
+    if (flightno or "").strip():
+        params["flightno"] = (flightno or "").strip()
+    endpoint_url = settings.cas_flights_departure_url if movement_type == "departure" else settings.cas_flights_arrival_url
 
     response = None
     raw_body = ""
@@ -348,7 +350,7 @@ def _list_door_4_arrival_flights_impl(
         try:
             with httpx.Client(timeout=settings.cas_flights_timeout_seconds) as client:
                 response = client.get(
-                    settings.cas_flights_base_url,
+                    endpoint_url,
                     params=params,
                     headers={"x-api-key": settings.cas_flights_api_key, "Accept": "application/json"},
                 )
@@ -407,7 +409,15 @@ def list_door_4_arrival_flights(
     tixdate: date = Query(...),
     flightno: str | None = Query(default=None),
 ) -> Any:
-    return _list_door_4_arrival_flights_impl(tixdate=tixdate, flightno=flightno)
+    return _list_door_4_flights_impl(tixdate=tixdate, flightno=flightno, movement_type="arrival")
+
+
+@router.get("/door-4/departures")
+def list_door_4_departure_flights(
+    tixdate: date = Query(...),
+    flightno: str | None = Query(default=None),
+) -> Any:
+    return _list_door_4_flights_impl(tixdate=tixdate, flightno=flightno, movement_type="departure")
 
 
 @router.get("/door-4/flights")
@@ -415,7 +425,7 @@ def list_door_4_flights_legacy(
     tixdate: date = Query(...),
     flightno: str | None = Query(default=None),
 ) -> Any:
-    return _list_door_4_arrival_flights_impl(tixdate=tixdate, flightno=flightno)
+    return _list_door_4_flights_impl(tixdate=tixdate, flightno=flightno, movement_type="departure")
 
 
 @router.post("/door-4/agent/plan", response_model=Door4AgentPlanResponse)

@@ -345,6 +345,11 @@ export function getDeploymentAssignments(deploymentDate) {
 
 export function getDoor4DepartureFlights(tixdate, flightno = '') {
   const query = buildQuery({ tixdate, flightno })
+  return request(`/api/v1/deployments/door-4/departures?${query}`)
+}
+
+export function getDoor4ArrivalFlights(tixdate, flightno = '') {
+  const query = buildQuery({ tixdate, flightno })
   return request(`/api/v1/deployments/door-4/arrivals?${query}`)
 }
 
