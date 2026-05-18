@@ -17,6 +17,7 @@ import Door4CrossTerminalPage from './pages/Door4CrossTerminalPage'
 import Door4RulesPage from './pages/Door4RulesPage'
 import ReportingTimePage from './pages/ReportingTimePage'
 import PreboardConfigPage from './pages/PreboardConfigPage'
+import PreboardOfficersTeamsPage from './pages/PreboardOfficersTeamsPage'
 
 const THEME_KEY = 'roster_theme'
 
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/deployment-board/door-4/rules" element={<Door4RulesPage />} />
         <Route path="/deployment-sq-ramp" element={<Navigate to="/deployment-board/sq-ramp" replace />} />
         <Route path="/deployment-preboard" element={<Navigate to="/deployment-board/preboard" replace />} />
+        <Route path="/deployment-board/preboard/officers-teams" element={<PreboardOfficersTeamsPage />} />
         <Route path="/deployment-board/preboard/config" element={<PreboardConfigPage />} />
         <Route path="/deployment-board" element={<DeploymentBoardPage />} />
         <Route path="/deployment-board/door-4" element={<Navigate to="/deployment-board/door-4/deployment" replace />} />

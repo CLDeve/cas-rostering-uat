@@ -988,14 +988,28 @@ button:active,
 
 .door4-manpower-meta {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   margin-bottom: 2px;
 }
 
 .door4-manpower-meta span {
-  font-size: 9px;
-  color: var(--text-secondary);
-  line-height: 1.15;
+  font-size: 10.5px;
+  color: #cbd5e1;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.app-shell:not(.dark) .door4-manpower-card-head strong {
+  color: #0f172a;
+}
+
+.app-shell:not(.dark) .door4-manpower-meta span {
+  color: #475569;
+}
+
+.app-shell:not(.dark) .door4-manpower-card {
+  background: #f8fbff;
+  border-color: #cbd5e1;
 }
 
 .door4-officer-board {
@@ -1199,12 +1213,114 @@ button:active,
   width: 100%;
 }
 
+.door4-flight-table td {
+  color: #eef2ff;
+}
+
+.door4-flight-table tbody tr:hover td {
+  background: rgb(255 255 255 / .045);
+}
+
 .door4-flight-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: color-mix(in srgb, var(--accent-subtle) 55%, var(--surface) 45%);
-  color: #ffffff;
+  background: #243b5a;
+  color: #eaf2ff;
+}
+
+.door4-flight-table th:nth-child(1),
+.door4-flight-table td:nth-child(1),
+.door4-flight-table th:nth-child(2),
+.door4-flight-table td:nth-child(2),
+.door4-flight-table th:nth-child(3),
+.door4-flight-table td:nth-child(3),
+.door4-flight-table th:nth-child(4),
+.door4-flight-table td:nth-child(4),
+.door4-flight-table th:nth-child(5),
+.door4-flight-table td:nth-child(5),
+.door4-flight-table th:nth-child(6),
+.door4-flight-table td:nth-child(6),
+.door4-flight-table th:nth-child(7),
+.door4-flight-table td:nth-child(7) {
+  text-align: center;
+}
+
+.door4-flight-table td:nth-child(7) .screening-type-trigger {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.terminal-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 22px;
+  border: 1px solid #dc2626;
+  border-radius: 999px;
+  background: rgb(220 38 38 / .18);
+  color: #fecaca;
+  font-weight: 900;
+}
+
+.app-shell:not(.dark) .terminal-alert-badge {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
+}
+
+.app-shell:not(.dark) .door4-flight-board {
+  background: #ffffff;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.app-shell:not(.dark) .door4-board-header h2,
+.app-shell:not(.dark) .door4-flight-table td {
+  color: var(--text);
+}
+
+.app-shell:not(.dark) .door4-board-header span,
+.app-shell:not(.dark) .door4-flight-table th {
+  color: #475569;
+}
+
+.app-shell:not(.dark) .door4-flight-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.app-shell:not(.dark) .door4-flight-table thead th {
+  background: #eaf2ff;
+  color: #334155;
+}
+
+.app-shell:not(.dark) .door4-flight-break-row td {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.app-shell:not(.dark) .screening-type-trigger {
+  background: #e8f0ff;
+  border-color: #bfd2f5;
+  color: #1e3a8a;
+}
+
+.app-shell:not(.dark) .screening-type-trigger.has-value {
+  background: #dff7ff;
+  border-color: #38bdf8;
+  color: #075985;
+}
+
+.app-shell:not(.dark) .preboard-drop-target-label {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #60a5fa;
+}
+
+.app-shell:not(.dark) .door4-agentic-toggle {
+  background: #ffffff;
+  color: var(--text);
 }
 
 .door4-flight-break-row td {
@@ -1224,6 +1340,41 @@ button:active,
   gap: 10px;
 }
 
+.preboard-drop-target-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px dashed #60a5fa;
+  border-radius: 999px;
+  background: rgb(59 130 246 / .12);
+  color: #bfdbfe;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.preboard-team-chip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.preboard-team-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgb(147 197 253 / .55);
+  border-radius: 999px;
+  background: rgb(30 64 175 / .42);
+  color: #dbeafe;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .door4-flight-officer-actions {
   display: inline-flex;
   align-items: center;
@@ -1233,11 +1384,15 @@ button:active,
 .door4-gate-cell {
   display: inline-flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
+  width: 100%;
+  text-align: center;
 }
 
 .preboard-gate-cell {
   min-width: 72px;
+  width: fit-content;
   align-items: center;
   justify-content: center;
   border: 1px solid rgb(15 23 42 / .28);
@@ -1474,6 +1629,71 @@ button:active,
   width: 100%;
 }
 
+.screening-type-trigger {
+  width: 100%;
+  min-width: 130px;
+  max-width: 210px;
+  min-height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 82%, var(--accent) 18%);
+  color: #e5e7eb;
+  box-shadow: none;
+  padding: 3px 9px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+}
+
+.screening-type-trigger.has-value {
+  border-color: #38bdf8;
+  background: rgb(14 165 233 / .18);
+  color: #bae6fd;
+}
+
+.screening-type-trigger:hover {
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.close-gate-trigger {
+  min-width: 72px;
+  min-height: 24px;
+  border: 1px solid #dc2626;
+  border-radius: 999px;
+  background: rgb(220 38 38 / .20);
+  color: #fecaca;
+  box-shadow: none;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.close-gate-trigger.has-value {
+  border-color: #16a34a;
+  background: rgb(22 163 74 / .22);
+  color: #bbf7d0;
+}
+
+.app-shell:not(.dark) .close-gate-trigger {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.app-shell:not(.dark) .close-gate-trigger.has-value {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.close-gate-disabled {
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
 .door4-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1500,6 +1720,182 @@ button:active,
 .door4-modal h3 {
   margin: 0;
   font-size: 16px;
+  color: var(--text);
+}
+
+.screening-modal-backdrop {
+  background: rgb(2 6 23 / .48);
+  pointer-events: auto;
+}
+
+.screening-modal {
+  max-width: 420px;
+}
+
+.screening-modal h3 {
+  color: #f8fafc;
+}
+
+.screening-option-list {
+  display: grid;
+  gap: 6px;
+}
+
+.screening-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+}
+
+.screening-option-row input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.screening-option-row span {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.screening-percentage-field {
+  display: grid;
+  gap: 6px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.screening-percentage-field input {
+  max-width: 140px;
+  color: #f8fafc;
+  background: #16243a;
+  border-color: #334155;
+}
+
+.screening-percentage-field input::placeholder {
+  color: #94a3b8;
+}
+
+.close-gate-modal-backdrop {
+  background: rgb(2 6 23 / .58);
+  pointer-events: auto;
+}
+
+.close-gate-modal {
+  width: min(460px, calc(100vw - 32px));
+  min-height: 520px;
+  align-content: start;
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  padding: 18px;
+}
+
+.close-gate-modal h3 {
+  color: var(--text);
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.close-gate-type-field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: none;
+  padding: 0;
+  margin: 4px 0 8px;
+}
+
+.close-gate-type-field legend,
+.close-gate-list-label {
+  width: 100%;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.close-gate-type-field label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.close-gate-type-field input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.close-gate-picker-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.close-gate-picker-row input,
+.close-gate-picker-row select {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.close-gate-assignee-list {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 260px;
+  margin-top: 6px;
+}
+
+.close-gate-assignee-list strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.close-gate-assignee-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--text);
+  box-shadow: none;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.close-gate-assignee-chip small {
+  color: var(--accent-text);
+  font-weight: 800;
+}
+
+.close-gate-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.close-gate-modal-actions button {
+  height: 38px;
+}
+
+.close-gate-modal-actions button:last-child {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .door4-create-team-dropzone {
@@ -2313,4 +2709,2012 @@ tbody tr:hover td      { background: var(--bg-subtle); }
   .officer-profile-wireframe { grid-template-columns: 1fr; }
   .days-row { gap: 6px; }
   .dashboard-cards { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+}
+
+/* Preboard Officers & Teams */
+.preboard-ot-page {
+  --ot-bg: #071019;
+  --ot-panel: #081720;
+  --ot-panel-2: #0b1f2a;
+  --ot-border: #1e3a45;
+  --ot-border-soft: rgb(148 163 184 / .18);
+  --ot-text: #d6e3ea;
+  --ot-muted: #7d91a2;
+  --ot-cyan: #00d5ff;
+  --ot-green: #20d47c;
+  --ot-amber: #ffb72c;
+  --ot-red: #ff5b69;
+  --ot-brown: #5b3d16;
+  min-height: calc(100vh - 48px);
+  padding: 18px;
+  background: radial-gradient(circle at 20% 0%, rgb(0 213 255 / .1), transparent 28%), var(--ot-bg);
+  color: var(--ot-text);
+}
+
+.preboard-ot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.preboard-ot-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+
+.preboard-ot-header p {
+  margin-top: 2px;
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+.preboard-ot-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+.preboard-ot-date input,
+.preboard-ot-tools input,
+.preboard-ot-tools select {
+  height: 34px;
+  border: 1px solid var(--ot-border);
+  background: #0b1a24;
+  color: var(--ot-text);
+  border-radius: 0;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.preboard-ot-grid {
+  display: grid;
+  grid-template-columns: minmax(620px, .95fr) minmax(680px, 1.05fr);
+  gap: 10px;
+  min-height: calc(100vh - 110px);
+}
+
+.preboard-ot-panel {
+  min-width: 0;
+  border: 1px solid var(--ot-border);
+  background: #040c12;
+  box-shadow: 0 0 0 1px rgb(0 213 255 / .04) inset;
+}
+
+.preboard-ot-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #123f4f;
+  border-bottom: 1px solid var(--ot-border);
+}
+
+.preboard-ot-panel-head h2 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.preboard-ot-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.preboard-ot-tools input {
+  width: 220px;
+}
+
+.preboard-ot-tools select {
+  width: 140px;
+}
+
+.preboard-ot-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ot-border-soft);
+  color: var(--ot-muted);
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.preboard-ot-filters button,
+.preboard-ot-team-actions button {
+  border: 1px solid var(--ot-border);
+  background: #111822;
+  color: var(--ot-muted);
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.preboard-ot-filters button.active {
+  color: var(--ot-green);
+  border-color: rgb(32 212 124 / .5);
+  background: rgb(32 212 124 / .08);
+}
+
+.preboard-ot-table-wrap {
+  height: calc(100vh - 188px);
+  overflow: auto;
+  padding: 10px 10px 12px;
+}
+
+.preboard-ot-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.preboard-ot-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #061925;
+  color: #c8d7df;
+  border-bottom: 1px solid var(--ot-border);
+  padding: 8px 10px;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: none;
+}
+
+.preboard-ot-table td {
+  border-bottom: 1px solid var(--ot-border-soft);
+  color: #c8d7df;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.preboard-ot-table th:first-child,
+.preboard-ot-table td:first-child {
+  width: 34px;
+  text-align: center;
+}
+
+.preboard-ot-section-row td {
+  background: #0a4d5e;
+  color: #dff7ff;
+  border-top: 1px solid #10caef;
+  border-bottom: 1px solid #10caef;
+  font-weight: 800;
+}
+
+.preboard-ot-section-row td {
+  display: flex;
+  justify-content: space-between;
+}
+
+.officer-male { color: var(--ot-cyan) !important; font-weight: 800; }
+.officer-female { color: #ff5ec7 !important; font-weight: 800; }
+.preboard-ot-key { margin-left: 4px; color: #ffdf4d; font-size: 9px; }
+
+.preboard-ot-badge {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 52px;
+  border: 1px solid var(--ot-border);
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 15px;
+}
+
+.preboard-ot-badge.badge-in,
+.preboard-ot-badge.badge-back {
+  color: var(--ot-green);
+  background: rgb(32 212 124 / .12);
+  border-color: rgb(32 212 124 / .42);
+}
+
+.preboard-ot-badge.badge-late,
+.preboard-ot-badge.badge-meal {
+  color: var(--ot-amber);
+  background: rgb(255 183 44 / .12);
+  border-color: rgb(255 183 44 / .42);
+}
+
+.preboard-ot-badge.badge-meal-1h,
+.preboard-ot-badge.badge-short {
+  color: var(--ot-red);
+  background: rgb(255 91 105 / .12);
+  border-color: rgb(255 91 105 / .42);
+}
+
+.preboard-ot-skill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.preboard-ot-skill-list span {
+  border: 1px solid var(--ot-border);
+  color: #c8d7df;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.preboard-ot-skill-list span:nth-child(n+2) {
+  color: var(--ot-green);
+  border-color: rgb(32 212 124 / .45);
+}
+
+.preboard-ot-team-tag {
+  display: inline-flex;
+  border-left: 4px solid #d94b79;
+  background: rgb(217 75 121 / .25);
+  color: #f2d6df;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.preboard-ot-team-tag.tag-orange { border-left-color: #fb923c; background: rgb(251 146 60 / .24); }
+.preboard-ot-team-tag.tag-cyan { border-left-color: #22d3ee; background: rgb(34 211 238 / .2); }
+.preboard-ot-team-tag.tag-green { border-left-color: #22c55e; background: rgb(34 197 94 / .2); }
+.preboard-ot-team-tag.tag-violet { border-left-color: #a78bfa; background: rgb(167 139 250 / .2); }
+
+.preboard-ot-teams {
+  background: #0d0803;
+  border-color: #423018;
+}
+
+.preboard-ot-teams .teams-head {
+  background: var(--ot-brown);
+  border-color: #775324;
+}
+
+.preboard-ot-team-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #c2ac86;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.preboard-ot-team-scroll {
+  height: calc(100vh - 128px);
+  overflow: auto;
+  padding: 10px;
+}
+
+.preboard-ot-team-group {
+  border: 1px solid #2e2418;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #0b0602;
+}
+
+.preboard-ot-team-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: #123f4f;
+  border-left: 4px solid var(--ot-cyan);
+  color: #d7e7ee;
+  font-weight: 900;
+}
+
+.preboard-ot-team-group:nth-child(2n) .preboard-ot-team-group-head {
+  background: #123b1a;
+  border-left-color: var(--ot-green);
+}
+
+.preboard-ot-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(218px, 1fr));
+  gap: 8px;
+}
+
+.preboard-ot-team-card {
+  width: 100%;
+  min-height: 220px;
+  text-align: left;
+  border: 1px solid #3a3021;
+  background: #080500;
+  color: #cbbda6;
+  border-radius: 0;
+  padding: 10px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.preboard-ot-team-card:hover,
+.preboard-ot-team-card.selected {
+  border-color: var(--ot-amber);
+  box-shadow: 0 0 0 1px rgb(255 183 44 / .24) inset;
+}
+
+.preboard-ot-team-title,
+.preboard-ot-team-count {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preboard-ot-team-title strong {
+  color: #f3e8d2;
+  font-size: 13px;
+}
+
+.preboard-ot-team-card b { color: var(--ot-amber); }
+.preboard-ot-team-card .ok { color: var(--ot-green); }
+.preboard-ot-team-card .warn { color: var(--ot-amber); }
+.preboard-ot-team-card .bad { color: var(--ot-red); }
+.preboard-ot-team-card hr { border: 0; border-top: 1px solid #2e2418; margin: 8px 0; }
+
+.preboard-ot-members {
+  display: grid;
+  gap: 3px;
+}
+
+.preboard-ot-members div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.preboard-ot-members span {
+  color: #d7e7ee;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preboard-ot-members span b {
+  color: var(--ot-cyan);
+}
+
+.preboard-ot-members small {
+  color: #9b8b72;
+  white-space: nowrap;
+}
+
+.preboard-ot-selected-team {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--ot-border);
+  background: #081720;
+  color: var(--ot-text);
+  padding: 12px 14px;
+  box-shadow: 0 18px 50px rgb(0 0 0 / .45);
+}
+
+.preboard-ot-selected-team div {
+  display: grid;
+  gap: 2px;
+}
+
+.preboard-ot-selected-team span {
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+.preboard-ot-selected-team button {
+  min-height: 28px;
+  padding: 0 12px;
+}
+
+.app-shell:not(.dark) .preboard-ot-page {
+  --ot-bg: #f8fafc;
+  --ot-panel: #ffffff;
+  --ot-border: #cbd5e1;
+  --ot-border-soft: #e2e8f0;
+  --ot-text: #0f172a;
+  --ot-muted: #64748b;
+  background: #f8fafc;
+  color: var(--ot-text);
+}
+
+.app-shell:not(.dark) .preboard-ot-panel,
+.app-shell:not(.dark) .preboard-ot-teams,
+.app-shell:not(.dark) .preboard-ot-team-group,
+.app-shell:not(.dark) .preboard-ot-team-card {
+  background: #ffffff;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.app-shell:not(.dark) .preboard-ot-table th {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.app-shell:not(.dark) .preboard-ot-table td,
+.app-shell:not(.dark) .preboard-ot-members span,
+.app-shell:not(.dark) .preboard-ot-skill-list span {
+  color: #334155;
+}
+
+.app-shell:not(.dark) .preboard-ot-date input,
+.app-shell:not(.dark) .preboard-ot-tools input,
+.app-shell:not(.dark) .preboard-ot-tools select {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+@media (max-width: 1300px) {
+  .preboard-ot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preboard-ot-table-wrap,
+  .preboard-ot-team-scroll {
+    height: 58vh;
+  }
+}
+
+@media (max-width: 760px) {
+  .preboard-ot-page {
+    padding: 12px;
+  }
+
+  .preboard-ot-header,
+  .preboard-ot-panel-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preboard-ot-tools {
+    flex-direction: column;
+  }
+
+  .preboard-ot-tools input,
+  .preboard-ot-tools select {
+    width: 100%;
+  }
+}
+
+/* Align Preboard Officers & Teams with the Preboard deployment board skin */
+.preboard-ot-page {
+  --ot-bg: var(--bg);
+  --ot-panel: var(--surface);
+  --ot-panel-2: #17191f;
+  --ot-border: var(--border);
+  --ot-border-soft: #334155;
+  --ot-text: var(--text);
+  --ot-muted: var(--text-secondary);
+  --ot-cyan: #38bdf8;
+  --ot-green: #86efac;
+  --ot-amber: #fbbf24;
+  --ot-red: #fca5a5;
+  --ot-blue-head: #243b5a;
+  min-height: 100%;
+  padding: 22px 24px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-shell.dark .preboard-ot-page {
+  --ot-panel: #1e293b;
+  --ot-panel-2: #17191f;
+  --ot-border: #334155;
+  --ot-border-soft: #334155;
+  --ot-text: #f1f5f9;
+  --ot-muted: #94a3b8;
+}
+
+.preboard-ot-header {
+  min-height: 68px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--ot-border);
+  border-radius: var(--r-lg);
+  background: var(--ot-panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.preboard-ot-header h1 {
+  color: var(--ot-text);
+}
+
+.preboard-ot-header p,
+.preboard-ot-date {
+  color: var(--ot-muted);
+}
+
+.preboard-ot-date input,
+.preboard-ot-tools input,
+.preboard-ot-tools select {
+  min-height: 32px;
+  border: 1px solid var(--ot-border);
+  border-radius: var(--r-md);
+  background: var(--bg-subtle);
+  color: var(--ot-text);
+}
+
+.app-shell.dark .preboard-ot-date input,
+.app-shell.dark .preboard-ot-tools input,
+.app-shell.dark .preboard-ot-tools select {
+  background: #1f2d42;
+  color: #f1f5f9;
+}
+
+.preboard-ot-grid {
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 10px;
+  min-height: auto;
+}
+
+.preboard-ot-panel,
+.preboard-ot-teams {
+  border: 1px solid var(--ot-border);
+  border-radius: var(--r-lg);
+  background: var(--ot-panel);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.preboard-ot-panel-head,
+.preboard-ot-teams .teams-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ot-border);
+  background: var(--ot-panel);
+}
+
+.preboard-ot-panel-head h2 {
+  color: var(--ot-text);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.preboard-ot-filters {
+  border-bottom: 1px solid var(--ot-border);
+  background: var(--ot-panel);
+  color: var(--ot-muted);
+}
+
+.preboard-ot-filters button,
+.preboard-ot-team-actions button {
+  border-radius: var(--r-md);
+  border-color: var(--ot-border);
+  background: var(--bg-subtle);
+  color: var(--ot-muted);
+}
+
+.app-shell.dark .preboard-ot-filters button,
+.app-shell.dark .preboard-ot-team-actions button {
+  background: #1f2d42;
+}
+
+.preboard-ot-filters button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.preboard-ot-table-wrap,
+.preboard-ot-team-scroll {
+  height: calc(100vh - 220px);
+  padding: 10px;
+}
+
+.preboard-ot-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 940px;
+}
+
+.preboard-ot-table th {
+  background: var(--ot-blue-head);
+  color: #eaf2ff;
+  border-bottom: 0;
+  padding: 9px 10px;
+  font-size: 11px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.preboard-ot-table th:first-child {
+  border-top-left-radius: var(--r-sm);
+}
+
+.preboard-ot-table th:last-child {
+  border-top-right-radius: var(--r-sm);
+}
+
+.preboard-ot-table td {
+  border-bottom: 1px solid var(--ot-border-soft);
+  color: var(--ot-text);
+  background: transparent;
+}
+
+.preboard-ot-section-row td {
+  display: table-cell;
+  background: #1e3a5f;
+  color: #93c5fd;
+  border-top: 1px solid #2563eb;
+  border-bottom: 1px solid #2563eb;
+}
+
+.preboard-ot-section-row td span {
+  font-weight: 900;
+}
+
+.preboard-ot-section-row td strong {
+  float: right;
+}
+
+.preboard-ot-badge,
+.preboard-ot-skill-list span,
+.preboard-ot-team-tag {
+  border-radius: var(--r-sm);
+}
+
+.preboard-ot-teams {
+  background: var(--ot-panel-2);
+}
+
+.preboard-ot-team-actions {
+  color: var(--ot-muted);
+}
+
+.preboard-ot-team-group {
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #263a38;
+  border-radius: var(--r-lg);
+  background: #17191f;
+}
+
+.preboard-ot-team-group-head,
+.preboard-ot-team-group:nth-child(2n) .preboard-ot-team-group-head {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-left: 0;
+  border-radius: var(--r-sm);
+  background: var(--ot-blue-head);
+  color: #eaf2ff;
+}
+
+.preboard-ot-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 10px;
+}
+
+.preboard-ot-team-card {
+  display: block;
+  min-height: 230px;
+  border: 1px solid #2f4350;
+  border-radius: var(--r-md);
+  background: #141820;
+  color: #dbeafe;
+  padding: 12px;
+  white-space: normal;
+}
+
+.preboard-ot-team-card:hover,
+.preboard-ot-team-card.selected {
+  background: #1b2432;
+  border-color: #60a5fa;
+  box-shadow: inset 0 0 0 1px rgb(96 165 250 / .24);
+}
+
+.preboard-ot-team-title strong,
+.preboard-ot-members span {
+  color: #f8fafc;
+}
+
+.preboard-ot-team-card p,
+.preboard-ot-members small {
+  color: #94a3b8;
+}
+
+.preboard-ot-team-card b,
+.preboard-ot-members span b {
+  color: #93c5fd;
+}
+
+.preboard-ot-team-card hr {
+  border-top-color: #2f4350;
+}
+
+.preboard-ot-selected-team {
+  border-radius: var(--r-lg);
+  border-color: var(--ot-border);
+  background: var(--ot-panel);
+  color: var(--ot-text);
+}
+
+.app-shell:not(.dark) .preboard-ot-teams,
+.app-shell:not(.dark) .preboard-ot-team-group,
+.app-shell:not(.dark) .preboard-ot-team-card {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #dbe3ef;
+}
+
+.app-shell:not(.dark) .preboard-ot-team-card:hover,
+.app-shell:not(.dark) .preboard-ot-team-card.selected {
+  background: #f8fafc;
+  border-color: #60a5fa;
+}
+
+.app-shell:not(.dark) .preboard-ot-team-title strong,
+.app-shell:not(.dark) .preboard-ot-members span,
+.app-shell:not(.dark) .preboard-ot-table td {
+  color: #0f172a;
+}
+
+.app-shell:not(.dark) .preboard-ot-team-card p,
+.app-shell:not(.dark) .preboard-ot-members small {
+  color: #64748b;
+}
+
+@media (max-width: 1300px) {
+  .preboard-ot-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Keep officer table readable on the Preboard Officers & Teams page */
+.preboard-ot-grid {
+  grid-template-columns: minmax(620px, .95fr) minmax(720px, 1.05fr);
+}
+
+.preboard-ot-officers {
+  min-width: 0;
+}
+
+.preboard-ot-table-wrap {
+  overflow: auto;
+}
+
+.preboard-ot-table {
+  min-width: 880px;
+  table-layout: fixed;
+}
+
+.preboard-ot-table th:nth-child(1),
+.preboard-ot-table td:nth-child(1) { width: 34px; }
+.preboard-ot-table th:nth-child(2),
+.preboard-ot-table td:nth-child(2) { width: 92px; }
+.preboard-ot-table th:nth-child(3),
+.preboard-ot-table td:nth-child(3) { width: 150px; }
+.preboard-ot-table th:nth-child(4),
+.preboard-ot-table td:nth-child(4) { width: 72px; text-align: center; }
+.preboard-ot-table th:nth-child(5),
+.preboard-ot-table td:nth-child(5) { width: 78px; text-align: center; }
+.preboard-ot-table th:nth-child(6),
+.preboard-ot-table td:nth-child(6) { width: 110px; }
+.preboard-ot-table th:nth-child(7),
+.preboard-ot-table td:nth-child(7) { width: 86px; text-align: center; }
+.preboard-ot-table th:nth-child(8),
+.preboard-ot-table td:nth-child(8) { width: 88px; text-align: center; }
+.preboard-ot-table th:nth-child(9),
+.preboard-ot-table td:nth-child(9) { width: 150px; }
+.preboard-ot-table th:nth-child(10),
+.preboard-ot-table td:nth-child(10) { width: 130px; }
+
+.preboard-ot-table td:nth-child(3),
+.preboard-ot-table td:nth-child(9),
+.preboard-ot-table td:nth-child(10) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1500px) {
+  .preboard-ot-grid {
+    grid-template-columns: minmax(560px, .9fr) minmax(620px, 1.1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .preboard-ot-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* No horizontal scrolling for Preboard Officers & Teams */
+.preboard-ot-table-wrap {
+  overflow-x: hidden;
+}
+
+.preboard-ot-table {
+  min-width: 0;
+  width: 100%;
+}
+
+.preboard-ot-table th,
+.preboard-ot-table td {
+  padding: 8px 6px;
+}
+
+.preboard-ot-table th:nth-child(1),
+.preboard-ot-table td:nth-child(1) { width: 28px; }
+.preboard-ot-table th:nth-child(2),
+.preboard-ot-table td:nth-child(2) { width: 72px; }
+.preboard-ot-table th:nth-child(3),
+.preboard-ot-table td:nth-child(3) { width: auto; }
+.preboard-ot-table th:nth-child(4),
+.preboard-ot-table td:nth-child(4) { width: 50px; }
+.preboard-ot-table th:nth-child(5),
+.preboard-ot-table td:nth-child(5) { width: 56px; }
+.preboard-ot-table th:nth-child(6),
+.preboard-ot-table td:nth-child(6) { width: 92px; }
+.preboard-ot-table th:nth-child(7),
+.preboard-ot-table td:nth-child(7) { width: 68px; }
+.preboard-ot-table th:nth-child(8),
+.preboard-ot-table td:nth-child(8) { width: 70px; }
+.preboard-ot-table th:nth-child(9),
+.preboard-ot-table td:nth-child(9) { width: 92px; }
+.preboard-ot-table th:nth-child(10),
+.preboard-ot-table td:nth-child(10) { width: 96px; }
+
+.preboard-ot-table th:nth-child(2),
+.preboard-ot-table td:nth-child(2),
+.preboard-ot-table th:nth-child(3),
+.preboard-ot-table td:nth-child(3),
+.preboard-ot-table th:nth-child(6),
+.preboard-ot-table td:nth-child(6),
+.preboard-ot-table th:nth-child(9),
+.preboard-ot-table td:nth-child(9),
+.preboard-ot-table th:nth-child(10),
+.preboard-ot-table td:nth-child(10) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preboard-ot-badge {
+  min-width: 42px;
+  padding-inline: 5px;
+}
+
+.preboard-ot-skill-list span,
+.preboard-ot-team-tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1540px) {
+  .preboard-ot-table th:nth-child(9),
+  .preboard-ot-table td:nth-child(9) {
+    display: none;
+  }
+}
+
+@media (max-width: 1360px) {
+  .preboard-ot-grid {
+    grid-template-columns: minmax(500px, .8fr) minmax(560px, 1.2fr);
+  }
+
+  .preboard-ot-table th:nth-child(4),
+  .preboard-ot-table td:nth-child(4),
+  .preboard-ot-table th:nth-child(6),
+  .preboard-ot-table td:nth-child(6) {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .preboard-ot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preboard-ot-table th:nth-child(4),
+  .preboard-ot-table td:nth-child(4),
+  .preboard-ot-table th:nth-child(6),
+  .preboard-ot-table td:nth-child(6),
+  .preboard-ot-table th:nth-child(9),
+  .preboard-ot-table td:nth-child(9) {
+    display: table-cell;
+  }
+}
+
+@media (max-width: 760px) {
+  .preboard-ot-table th:nth-child(2),
+  .preboard-ot-table td:nth-child(2),
+  .preboard-ot-table th:nth-child(4),
+  .preboard-ot-table td:nth-child(4),
+  .preboard-ot-table th:nth-child(6),
+  .preboard-ot-table td:nth-child(6),
+  .preboard-ot-table th:nth-child(8),
+  .preboard-ot-table td:nth-child(8),
+  .preboard-ot-table th:nth-child(9),
+  .preboard-ot-table td:nth-child(9),
+  .preboard-ot-table th:nth-child(10),
+  .preboard-ot-table td:nth-child(10) {
+    display: none;
+  }
+}
+
+.screening-header-trigger {
+  min-height: 34px;
+  padding-inline: 14px;
+  border-color: #60a5fa;
+  background: #244a7c;
+  color: #eaf2ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.screening-header-trigger:hover {
+  background: #2f5f9f;
+}
+
+.screening-header-trigger:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.screening-flight-field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: #b8c7d9;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.screening-flight-field input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #395273;
+  border-radius: var(--r-md);
+  background: #22324a;
+  color: #f8fafc;
+  padding: 0 10px;
+}
+
+.screening-flight-field span {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-shell:not(.dark) .screening-header-trigger {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.app-shell:not(.dark) .screening-flight-field {
+  color: #334155;
+}
+
+.app-shell:not(.dark) .screening-flight-field input {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  text-align: center;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 170px;
+  text-align: center;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  width: 128px;
+  text-align: center;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(11),
+.preboard-sample-board .door4-flight-table td:nth-child(11) {
+  width: 210px;
+}
+
+.preboard-flight-controls {
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 128px;
+  text-align: center;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  width: 210px;
+  text-align: left;
+}
+
+.screening-flight-field .screening-flight-warning {
+  color: #fbbf24;
+}
+
+.app-shell:not(.dark) .screening-flight-field .screening-flight-warning {
+  color: #92400e;
+}
+
+.screening-flight-picker {
+  display: grid;
+  gap: 4px;
+  max-height: 142px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid #334863;
+  border-radius: var(--r-md);
+  background: #172337;
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #172337;
+}
+
+.screening-flight-picker::-webkit-scrollbar {
+  width: 8px;
+}
+
+.screening-flight-picker::-webkit-scrollbar-track {
+  background: #172337;
+  border-radius: 999px;
+}
+
+.screening-flight-picker::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 999px;
+}
+
+.screening-flight-picker button {
+  justify-content: space-between;
+  min-height: 32px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: #dbeafe;
+  box-shadow: none;
+}
+
+.screening-flight-picker button:hover,
+.screening-flight-picker button.selected {
+  background: #263d5f;
+  border-color: #60a5fa;
+}
+
+.screening-flight-picker button strong {
+  font-size: 12px;
+}
+
+.screening-flight-picker button span,
+.screening-flight-empty {
+  color: #93a4bb;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.screening-flight-empty {
+  padding: 8px;
+}
+
+.app-shell:not(.dark) .screening-flight-picker {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  scrollbar-color: #94a3b8 #f8fafc;
+}
+
+.app-shell:not(.dark) .screening-flight-picker button {
+  color: #0f172a;
+}
+
+.app-shell:not(.dark) .screening-flight-picker button:hover,
+.app-shell:not(.dark) .screening-flight-picker button.selected {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.preboard-row-screening-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 150px;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid #60a5fa;
+  border-radius: 999px;
+  background: rgb(96 165 250 / .16);
+  color: #bfdbfe;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell:not(.dark) .preboard-row-screening-summary {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.screening-modal {
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: hidden;
+}
+
+.screening-flight-picker {
+  max-height: 280px;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  min-width: 150px;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 260px;
+  min-width: 260px;
+}
+
+.preboard-flight-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.preboard-row-screening-summary {
+  justify-self: end;
+  max-width: 135px;
+  white-space: normal;
+  text-align: center;
+}
+
+.preboard-row-screening-summary {
+  width: 176px;
+  max-width: 176px;
+  min-height: 32px;
+  max-height: 34px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  word-break: normal;
+}
+
+.preboard-flight-controls {
+  grid-template-columns: 176px auto auto auto;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 300px;
+  min-width: 300px;
+}
+
+.preboard-row-screening-summary {
+  font-size: 8px;
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  padding: 3px 8px;
+}
+
+.preboard-screening-slot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 176px;
+  min-width: 176px;
+}
+
+.preboard-row-screening-summary {
+  width: 230px;
+  max-width: 230px;
+  min-height: 34px;
+  max-height: 38px;
+  font-size: 9.5px;
+  line-height: 1.12;
+  padding: 4px 10px;
+}
+
+.preboard-screening-slot {
+  width: 230px;
+  min-width: 230px;
+}
+
+.preboard-flight-controls {
+  grid-template-columns: 230px auto auto auto;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 354px;
+  min-width: 354px;
+}
+
+.preboard-team-chip-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.preboard-team-chip {
+  flex: 0 0 auto;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 320px;
+  min-width: 320px;
+  text-align: left;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .door4-flight-officer-cell {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.preboard-sample-board .preboard-team-chip-row {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.preboard-sample-board .preboard-team-chip {
+  flex: 0 0 auto;
+}
+
+.preboard-sample-board .preboard-drop-target-label {
+  margin-inline: auto;
+}
+
+/* Final Preboard table sizing: fit board width, no horizontal scroll */
+.preboard-sample-board .door4-flight-table-wrap {
+  overflow-x: hidden;
+}
+
+.preboard-sample-board .door4-flight-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.preboard-sample-board .door4-flight-table th,
+.preboard-sample-board .door4-flight-table td {
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(1),
+.preboard-sample-board .door4-flight-table td:nth-child(1) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(2),
+.preboard-sample-board .door4-flight-table td:nth-child(2) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(3),
+.preboard-sample-board .door4-flight-table td:nth-child(3) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(4),
+.preboard-sample-board .door4-flight-table td:nth-child(4) { width: 9%; }
+.preboard-sample-board .door4-flight-table th:nth-child(5),
+.preboard-sample-board .door4-flight-table td:nth-child(5) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(6),
+.preboard-sample-board .door4-flight-table td:nth-child(6) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 18%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 25%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 10%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  overflow: hidden;
+}
+
+.preboard-sample-board .preboard-team-chip-row {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: hidden;
+  width: 100%;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  justify-content: end;
+  width: 100%;
+  min-width: 0;
+}
+
+.preboard-screening-slot {
+  width: auto;
+  min-width: 0;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.preboard-row-screening-summary {
+  width: 100%;
+  max-width: 230px;
+}
+
+.preboard-sample-board .door4-remarks-input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Use the available gap between Team to Flight and row controls */
+.preboard-sample-board .preboard-flight-controls {
+  grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  justify-content: stretch;
+}
+
+.preboard-sample-board .preboard-screening-slot {
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+.preboard-sample-board .preboard-row-screening-summary {
+  width: min(100%, 320px);
+  max-width: 320px;
+  justify-self: start;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) {
+  width: 20%;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 24%;
+}
+
+/* Compact Preboard screening controls and close the empty gap */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) {
+  width: 28%;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 17%;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  grid-template-columns: 150px auto auto auto;
+  justify-content: start;
+  gap: 6px;
+}
+
+.preboard-sample-board .preboard-screening-slot {
+  width: 150px;
+  min-width: 150px;
+  justify-content: flex-end;
+}
+
+.preboard-sample-board .preboard-row-screening-summary {
+  width: 150px;
+  max-width: 150px;
+  min-height: 30px;
+  max-height: 32px;
+  font-size: 8px;
+  line-height: 1.05;
+  padding: 3px 8px;
+}
+
+/* Close the gap between Team to Flight and row controls */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) {
+  width: 22%;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 23%;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+.preboard-sample-board .preboard-team-chip-row {
+  justify-content: flex-end;
+}
+
+.preboard-sample-board .preboard-drop-target-label {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  justify-content: start;
+}
+
+.preboard-drop-slot-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.preboard-sample-board .preboard-drop-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-drop-target-label {
+  min-height: 22px;
+  padding: 3px 7px;
+  border-color: #f59e0b;
+  background: rgb(245 158 11 / .16);
+  color: #fde68a;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.app-shell:not(.dark) .preboard-sample-board .preboard-drop-slot-row .preboard-drop-target-label,
+.app-shell:not(.dark) .preboard-sample-board .preboard-drop-target-label {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+
+.preboard-team-slot-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip,
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label {
+  flex: 0 0 auto;
+}
+
+/* Close gap between PAX controls and Close Gate */
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 27%;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 5%;
+  text-align: left;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  width: 9%;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(9) .close-gate-trigger {
+  margin-left: 0;
+}
+
+/* Correct PAX to Assign spacing: keep controls tight to Close Gate */
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  width: 23%;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  width: 7%;
+  text-align: left;
+  padding-left: 4px;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  justify-content: end;
+  justify-items: end;
+}
+
+/* Final Preboard column balance: fit 5 team slots, avoid clipping, no horizontal scroll */
+.preboard-sample-board .door4-flight-table th:nth-child(1),
+.preboard-sample-board .door4-flight-table td:nth-child(1) { width: 4%; }
+.preboard-sample-board .door4-flight-table th:nth-child(2),
+.preboard-sample-board .door4-flight-table td:nth-child(2) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(3),
+.preboard-sample-board .door4-flight-table td:nth-child(3) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(4),
+.preboard-sample-board .door4-flight-table td:nth-child(4) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(5),
+.preboard-sample-board .door4-flight-table td:nth-child(5) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(6),
+.preboard-sample-board .door4-flight-table td:nth-child(6) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 32%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 17%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 8%; }
+
+.preboard-sample-board .preboard-team-slot-row {
+  gap: 3px;
+  overflow: hidden;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip {
+  min-height: 20px;
+  padding: 2px 5px;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  grid-template-columns: minmax(120px, 1fr) auto auto auto;
+  gap: 5px;
+}
+
+.preboard-sample-board .preboard-row-screening-summary {
+  max-width: 145px;
+}
+
+/* Keep the five DROP TEAM slots grouped tightly */
+.preboard-sample-board .preboard-team-slot-row {
+  justify-content: flex-start;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  justify-content: flex-start;
+  padding-left: 8px;
+  padding-right: 0;
+}
+
+/* Screening belongs with Team to Flight, controls stay compact */
+.preboard-sample-board .preboard-team-slot-row {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-row-screening-summary {
+  flex: 0 1 145px;
+  width: 145px;
+  max-width: 145px;
+  margin-left: 6px;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 38%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 10%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 7%; }
+
+/* Hard reset for Team to Flight slots: no auto margins, no stretching */
+.preboard-sample-board .preboard-team-slot-row {
+  display: inline-flex !important;
+  width: auto !important;
+  max-width: 100% !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 5px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip {
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  justify-content: flex-start !important;
+  padding-left: 8px;
+  padding-right: 0;
+}
+
+/* Preboard final: Team slots + screening + Q/AI/PAX live in one Team to Flight cell */
+.preboard-sample-board .door4-flight-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(1),
+.preboard-sample-board .door4-flight-table td:nth-child(1) { width: 4%; }
+.preboard-sample-board .door4-flight-table th:nth-child(2),
+.preboard-sample-board .door4-flight-table td:nth-child(2) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(3),
+.preboard-sample-board .door4-flight-table td:nth-child(3) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(4),
+.preboard-sample-board .door4-flight-table td:nth-child(4) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(5),
+.preboard-sample-board .door4-flight-table td:nth-child(5) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(6),
+.preboard-sample-board .door4-flight-table td:nth-child(6) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 49%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 8%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  justify-content: flex-start !important;
+  width: 100%;
+  padding-left: 8px;
+  padding-right: 0;
+}
+
+.preboard-sample-board .preboard-team-slot-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip {
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.preboard-inline-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  margin-left: 6px;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-row-screening-summary {
+  flex: 0 1 150px;
+  width: 150px;
+  max-width: 150px;
+  margin-left: 6px;
+}
+
+/* Preboard final 10-column layout: Team to Flight contains only team/screening slots */
+.preboard-sample-board .door4-flight-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(1),
+.preboard-sample-board .door4-flight-table td:nth-child(1) { width: 4%; }
+.preboard-sample-board .door4-flight-table th:nth-child(2),
+.preboard-sample-board .door4-flight-table td:nth-child(2) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(3),
+.preboard-sample-board .door4-flight-table td:nth-child(3) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(4),
+.preboard-sample-board .door4-flight-table td:nth-child(4) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(5),
+.preboard-sample-board .door4-flight-table td:nth-child(5) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(6),
+.preboard-sample-board .door4-flight-table td:nth-child(6) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 40%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 9%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 8%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  justify-content: flex-start !important;
+  width: 100%;
+  padding-left: 8px;
+  padding-right: 0;
+}
+
+.preboard-sample-board .preboard-team-slot-row {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 5px !important;
+  width: auto !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip {
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 5px;
+  width: auto;
+  min-width: 0;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-row-screening-summary {
+  flex: 0 1 135px;
+  width: 135px;
+  max-width: 135px;
+  margin-left: 5px;
+}
+
+/* Make Team to Flight slots readable without spreading across the column */
+.preboard-sample-board .preboard-team-slot-row {
+  gap: 6px !important;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-drop-target-label,
+.preboard-sample-board .preboard-team-slot-row .preboard-team-chip {
+  width: 72px;
+  min-width: 72px;
+  min-height: 24px;
+  padding: 3px 6px;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.preboard-sample-board .preboard-team-slot-row .preboard-row-screening-summary {
+  width: 150px;
+  max-width: 150px;
+  min-height: 30px;
+  font-size: 8px;
+}
+
+/* Tighten spacing before Q/AI/PAX controls */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 45%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 4%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 8%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  padding-left: 2px;
+  padding-right: 2px;
+  overflow: visible;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  justify-content: flex-start !important;
+  white-space: nowrap;
+}
+
+/* Move right-side controls/actions left, reduce dead space after Team to Flight */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 36%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 13%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 7%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 8%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  justify-content: flex-start !important;
+  white-space: nowrap;
+}
+
+/* Preboard 11-column layout with dedicated Screening column */
+.preboard-sample-board .door4-flight-table th:nth-child(1),
+.preboard-sample-board .door4-flight-table td:nth-child(1) { width: 4%; }
+.preboard-sample-board .door4-flight-table th:nth-child(2),
+.preboard-sample-board .door4-flight-table td:nth-child(2) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(3),
+.preboard-sample-board .door4-flight-table td:nth-child(3) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(4),
+.preboard-sample-board .door4-flight-table td:nth-child(4) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(5),
+.preboard-sample-board .door4-flight-table td:nth-child(5) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(6),
+.preboard-sample-board .door4-flight-table td:nth-child(6) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 31%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 12%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(11),
+.preboard-sample-board .door4-flight-table td:nth-child(11) { width: 7%; }
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8),
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9),
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  text-align: center;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  width: 100%;
+  max-width: 132px;
+  margin-inline: auto;
+}
+
+.preboard-screening-empty {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.preboard-sample-board .preboard-flight-controls {
+  justify-content: center !important;
+}
+
+/* Compact Screening column */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 35%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 8%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 6%; }
+.preboard-sample-board .door4-flight-table th:nth-child(11),
+.preboard-sample-board .door4-flight-table td:nth-child(11) { width: 7%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  max-width: 92px;
+  min-height: 26px;
+  max-height: 28px;
+  font-size: 7.5px;
+  line-height: 1.05;
+  padding: 2px 6px;
+}
+
+/* Medium Screening column size */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 33%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 10%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  max-width: 118px;
+  min-height: 30px;
+  max-height: 34px;
+  font-size: 8.5px;
+  line-height: 1.08;
+  padding: 3px 7px;
+}
+
+/* Readable Screening column without affecting right controls */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 30%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 15%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  width: 170px;
+  max-width: 170px;
+  min-height: 34px;
+  max-height: 38px;
+  font-size: 9px;
+  line-height: 1.1;
+  padding: 4px 10px;
+}
+
+/* Reduce gap between Team to Flight and Screening */
+.preboard-sample-board .door4-flight-table th:nth-child(7),
+.preboard-sample-board .door4-flight-table td:nth-child(7) { width: 25%; }
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 20%; }
+
+.preboard-sample-board .door4-flight-table td:nth-child(7) .door4-flight-officer-cell {
+  padding-left: 4px;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  text-align: left;
+  padding-left: 6px;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Reduce gap between Screening and Q/AI/PAX controls */
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) { width: 14%; }
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 14%; }
+
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) {
+  text-align: left;
+  padding-left: 4px;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(9) .preboard-flight-controls {
+  justify-content: flex-start !important;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  width: 190px;
+  max-width: 190px;
+}
+
+.preboard-sample-board .door4-flight-table th:nth-child(8),
+.preboard-sample-board .door4-flight-table td:nth-child(8) {
+  text-align: center;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(8) .preboard-row-screening-summary {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Tighten gap between PAX and Close Gate */
+.preboard-sample-board .door4-flight-table th:nth-child(9),
+.preboard-sample-board .door4-flight-table td:nth-child(9) { width: 11%; }
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) { width: 5%; }
+.preboard-sample-board .door4-flight-table th:nth-child(11),
+.preboard-sample-board .door4-flight-table td:nth-child(11) { width: 7%; }
+
+.preboard-sample-board .door4-flight-table th:nth-child(10),
+.preboard-sample-board .door4-flight-table td:nth-child(10) {
+  text-align: left;
+  padding-left: 2px;
+}
+
+.preboard-sample-board .door4-flight-table td:nth-child(10) .close-gate-trigger {
+  margin-left: 0;
 }

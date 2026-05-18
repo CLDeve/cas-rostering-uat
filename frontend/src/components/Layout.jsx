@@ -148,6 +148,15 @@ const navItems = [
     subtitle: 'Open deployment board for Preboard.',
     subnav: true,
     groupKey: 'deployment',
+    exact: true,
+  },
+  {
+    to: '/deployment-board/preboard/officers-teams',
+    label: 'Preboard Officers & Teams',
+    icon: UserCheck,
+    subtitle: 'Preboard officer attendance and team overview.',
+    subnav: true,
+    groupKey: 'deployment',
   },
   {
     to: '/deployment-board/preboard/config',

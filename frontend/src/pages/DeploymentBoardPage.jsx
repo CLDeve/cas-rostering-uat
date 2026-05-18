@@ -22,6 +22,7 @@ const DEFAULT_SLOT_CAPACITY = 25
 const PREBOARD_MAX_TEAMS_PER_FLIGHT = 5
 const DOOR4_PLAN_STORAGE_KEY = 'door4_flight_assignments_by_date'
 const DOOR4_PLAN_UPDATED_EVENT = 'door4-plan-updated'
+const SCREENING_TYPE_OPTIONS = ['Enhanced Screening', 'Pat Down', 'Continuous Swab', 'Palm Swab']
 const DEPLOYMENT_SCOPES = {
   all: { label: 'Deployment Board', aliases: [], locked: false },
   'door-4': { label: 'Door 4', aliases: ['door 4', 'door4'], locked: true },
@@ -302,6 +303,7 @@ function parseClockMinutes(value) {
 function normalizeTerminalValue(value) {
   const raw = String(value || '').trim().toUpperCase()
   if (!raw || raw === '—' || raw === 'T?') return ''
+  if (raw === '0' || raw === 'T0' || raw === 'TERMINAL 0') return 'T0'
   const direct = raw.match(/^T?([1-4])$/)
   if (direct) return `T${direct[1]}`
   const prefixed = raw.match(/^TERMINAL\s*([1-4])$/)
@@ -586,6 +588,14 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   const [door4PlanLoadedDate, setDoor4PlanLoadedDate] = useState('')
   const [flightBeaconDetected, setFlightBeaconDetected] = useState({})
   const [flightRemarks, setFlightRemarks] = useState({})
+  const [flightScreeningSettings, setFlightScreeningSettings] = useState({})
+  const [isScreeningEditorOpen, setIsScreeningEditorOpen] = useState(false)
+  const [screeningEditorFlightKey, setScreeningEditorFlightKey] = useState('')
+  const [screeningEditorFlightInput, setScreeningEditorFlightInput] = useState('')
+  const [closeGateAssignments, setCloseGateAssignments] = useState({})
+  const [closeGateEditorFlightKey, setCloseGateEditorFlightKey] = useState('')
+  const [closeGateDraftType, setCloseGateDraftType] = useState('user')
+  const [closeGateDraftValue, setCloseGateDraftValue] = useState('')
   const [flightGateChanges, setFlightGateChanges] = useState({})
   const [preboardManpowerView, setPreboardManpowerView] = useState('teams')
   const [preboardFlightTeams, setPreboardFlightTeams] = useState({})
@@ -700,6 +710,8 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       })
       setDoor4Flights(rows)
       setFlightRemarks({})
+      setFlightScreeningSettings({})
+      setCloseGateAssignments({})
       setFlightGateChanges(nextGateChanges)
       const changedCount = Object.keys(nextGateChanges).length
       setDoor4FlightStatus(
@@ -708,6 +720,8 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     } catch (err) {
       setDoor4Flights([])
       setFlightRemarks({})
+      setFlightScreeningSettings({})
+      setCloseGateAssignments({})
       setFlightGateChanges({})
       setDoor4FlightStatus(`Unable to load Door 4 flights: ${err.message}`)
     } finally {
@@ -1003,6 +1017,122 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     setFlightRemarks((prev) => ({ ...prev, [flightKey]: value }))
   }
 
+  function getScreeningSummary(flightKey, fallbackValue = '') {
+    const settings = flightScreeningSettings[flightKey]
+    if (!settings) return fallbackValue && fallbackValue !== '—' ? fallbackValue : 'Set screening'
+    const types = Array.isArray(settings.types) ? settings.types : []
+    const percent = String(settings.percentage || '').trim()
+    if (!types.length && !percent) return 'Set screening'
+    const typeText = types.length ? types.join(', ') : 'Screening'
+    return percent ? `${typeText} · ${percent}%` : typeText
+  }
+
+  function resolveScreeningFlightInput(value) {
+    const normalized = String(value || '').trim().toUpperCase()
+    if (!normalized) return null
+    return screeningFlightOptions.find((option) => (
+      option.key === value
+      || option.flight.toUpperCase() === normalized
+      || option.label.toUpperCase() === normalized
+      || `${option.flight} ${option.gate}`.toUpperCase() === normalized
+    )) || null
+  }
+
+  function openScreeningEditor(flightKey = '') {
+    const option = flightKey ? screeningFlightOptions.find((item) => item.key === flightKey) : null
+    setScreeningEditorFlightKey(option?.key || '')
+    setScreeningEditorFlightInput(option?.flight || '')
+    setIsScreeningEditorOpen(true)
+  }
+
+  function updateScreeningEditorFlightInput(value) {
+    setScreeningEditorFlightInput(value)
+    const match = resolveScreeningFlightInput(value)
+    setScreeningEditorFlightKey(match ? match.key : '')
+  }
+
+  function updateScreeningType(flightKey, type, checked) {
+    setFlightScreeningSettings((prev) => {
+      const current = prev[flightKey] || { types: [], percentage: '' }
+      const currentTypes = Array.isArray(current.types) ? current.types : []
+      const nextTypes = checked
+        ? [...new Set([...currentTypes, type])]
+        : currentTypes.filter((item) => item !== type)
+      return { ...prev, [flightKey]: { ...current, types: nextTypes } }
+    })
+  }
+
+  function updateScreeningPercentage(flightKey, value) {
+    const numeric = String(value || '').replace(/[^\d.]/g, '')
+    const bounded = numeric === '' ? '' : String(Math.min(100, Math.max(0, Number(numeric))))
+    setFlightScreeningSettings((prev) => {
+      const current = prev[flightKey] || { types: [], percentage: '' }
+      return { ...prev, [flightKey]: { ...current, percentage: bounded } }
+    })
+  }
+
+  function clearScreeningSettings(flightKey) {
+    setFlightScreeningSettings((prev) => {
+      if (!prev[flightKey]) return prev
+      const next = { ...prev }
+      delete next[flightKey]
+      return next
+    })
+    setScreeningEditorFlightKey('')
+    setScreeningEditorFlightInput('')
+    setIsScreeningEditorOpen(false)
+  }
+
+  function getCloseGateSummary(flightKey, fallbackValue = '') {
+    const assignments = closeGateAssignments[flightKey] || []
+    if (!assignments.length) return fallbackValue && fallbackValue !== '—' ? fallbackValue : 'Assign'
+    if (assignments.length === 1) return assignments[0].label
+    return `${assignments.length} assignees`
+  }
+
+  function openCloseGateModal(flightKey) {
+    setCloseGateEditorFlightKey(flightKey)
+    setCloseGateDraftType('user')
+    setCloseGateDraftValue('')
+  }
+
+  function addCloseGateDraftAssignee() {
+    if (!closeGateEditorFlightKey || !closeGateDraftValue) return
+    const source = closeGateDraftType === 'team' ? preboardTeamCards : visibleAvailableOfficers
+    const match = source.find((item) => {
+      const id = closeGateDraftType === 'team' ? item.teamName : String(item.id)
+      const label = closeGateDraftType === 'team' ? item.teamName : `${item.name} (${item.staff_id})`
+      return String(id) === String(closeGateDraftValue)
+        || String(label).toLowerCase() === String(closeGateDraftValue).toLowerCase()
+        || String(item.name || '').toLowerCase() === String(closeGateDraftValue).toLowerCase()
+    })
+    const typedValue = String(closeGateDraftValue).trim()
+    const nextAssignee = match
+      ? closeGateDraftType === 'team'
+        ? { type: 'team', id: match.teamName, label: match.teamName }
+        : { type: 'user', id: String(match.id), label: `${match.name} (${match.staff_id})` }
+      : { type: closeGateDraftType, id: `typed:${typedValue}`, label: typedValue }
+    setCloseGateAssignments((prev) => {
+      const current = Array.isArray(prev[closeGateEditorFlightKey]) ? prev[closeGateEditorFlightKey] : []
+      if (current.some((item) => item.type === nextAssignee.type && String(item.id) === String(nextAssignee.id))) return prev
+      return { ...prev, [closeGateEditorFlightKey]: [...current, nextAssignee] }
+    })
+    setCloseGateDraftValue('')
+  }
+
+  function removeCloseGateAssignee(flightKey, assignee) {
+    setCloseGateAssignments((prev) => {
+      const current = Array.isArray(prev[flightKey]) ? prev[flightKey] : []
+      const next = current.filter((item) => !(item.type === assignee.type && String(item.id) === String(assignee.id)))
+      return { ...prev, [flightKey]: next }
+    })
+  }
+
+  function submitCloseGateAssignments() {
+    setCloseGateEditorFlightKey('')
+    setCloseGateDraftValue('')
+  }
+
   function openCreateTeamModal() {
     setCreateTeamName('')
     setCreateTeamOfficerIds([])
@@ -1112,7 +1242,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     if (!isPreboardScope) return searched
     return searched.filter((row) => {
       const terminal = normalizeTerminalValue(getFlightDisplay(row).terminal)
-      if (!terminal) return true
+      if (!terminal || terminal === 'T0') return true
       return selectedPreboardTerminals.includes(terminal)
     })
   }, [displayedDoor4Flights, door4TableSearch, isPreboardScope, selectedPreboardTerminals])
@@ -1133,6 +1263,33 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     })
     return rows
   }, [filteredDisplayedDoor4Flights, selectedDate])
+  const screeningFlightOptions = useMemo(() => (
+    door4FlightsWithDateBreaks
+      .filter((entry) => entry.type === 'flight')
+      .map((entry) => {
+        const item = getFlightDisplay(entry.flight)
+        return {
+          key: entry.key,
+          flight: item.flight,
+          gate: item.gate,
+          terminal: item.terminal,
+          label: `${item.flight} · ${item.terminal} ${item.gate}`,
+        }
+      })
+      .filter((item) => item.flight && item.flight !== '—')
+  ), [door4FlightsWithDateBreaks])
+  const filteredScreeningFlightOptions = useMemo(() => {
+    const q = screeningEditorFlightInput.trim().toLowerCase()
+    const source = !q
+      ? screeningFlightOptions
+      : screeningFlightOptions.filter((option) => (
+        option.flight.toLowerCase().includes(q)
+        || option.gate.toLowerCase().includes(q)
+        || option.terminal.toLowerCase().includes(q)
+        || option.label.toLowerCase().includes(q)
+      ))
+    return source
+  }, [screeningEditorFlightInput, screeningFlightOptions])
 
   const gateAssignedCountByOfficer = useMemo(() => {
     const counts = {}
@@ -1515,6 +1672,16 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                   </button>
                 </div>
                 {isPreboardScope && (
+                  <button
+                    type="button"
+                    className="screening-header-trigger"
+                    onClick={() => openScreeningEditor()}
+                    disabled={screeningFlightOptions.length === 0}
+                  >
+                    Set screening
+                  </button>
+                )}
+                {isPreboardScope && (
                   <div className="door4-terminal-filter-row">
                     {['T1', 'T2', 'T3', 'T4'].map((terminal) => (
                       <button
@@ -1549,11 +1716,13 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     <th>GATE</th>
                     <th>FLIGHT</th>
                     <th>STATUS</th>
-                    <th>ETA</th>
-                    <th>SCH</th>
+                    <th>ET</th>
+                    <th>STD</th>
+                    {!isPreboardScope && <th>SCREENING TYPE</th>}
+                    <th>{isPreboardScope ? 'TEAM TO FLIGHT' : 'OFFICER / DOOR'}</th>
+                    {isPreboardScope && <th>SCREENING</th>}
+                    {isPreboardScope && <th aria-label="Screening and flight controls"></th>}
                     <th>CLOSE GATE</th>
-                    <th>SCREENING TYPE</th>
-                    <th>OFFICER / DOOR</th>
                     <th>REMARKS</th>
                   </tr>
                 </thead>
@@ -1562,7 +1731,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     if (entry.type === 'date') {
                       return (
                         <tr key={entry.key} className="door4-flight-break-row">
-                          <td colSpan={10}>{entry.label}</td>
+                          <td colSpan={isPreboardScope ? 11 : 10}>{entry.label}</td>
                         </tr>
                       )
                     }
@@ -1574,13 +1743,15 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     const assignedTeams = Array.isArray(preboardFlightTeams[key]) ? preboardFlightTeams[key] : []
                     const officerText = isCancelledFlight
                       ? 'Cancelled - no manpower'
-                      : isPreboardScope
-                        ? (assignedTeams.length > 0 ? `Teams: ${assignedTeams.join(', ')}` : 'Drop team here')
                       : assignedOfficer ? `${assignedOfficer.name} (${assignedOfficer.staff_id})` : (item.officer === 'Unassigned' ? 'Drop officer here' : item.officer)
                     const preboardGateType = isPreboardScope ? findPreboardGateType(preboardGateTypeRows, item.terminal, item.gate) : ''
                     return (
                       <tr key={key} onDragOver={allowDrop} onDrop={(e) => onDropToFlight(e, key)}>
-                        <td>{item.terminal}</td>
+                        <td>
+                          <span className={item.terminal === 'T?' || item.terminal === 'T0' ? 'terminal-alert-badge' : ''}>
+                            {item.terminal}
+                          </span>
+                        </td>
                         <td>
                           <div className={`door4-gate-cell${preboardGateType ? ` preboard-gate-cell ${getPreboardGateTypeClass(preboardGateType)}` : ''}`}>
                             <span>{item.gate}</span>
@@ -1596,12 +1767,34 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                         <td><span className={`badge ${statusBadgeClass(item.status)}`}>{item.status}</span></td>
                         <td>{item.eta}</td>
                         <td>{item.scheduled}</td>
-                        <td>{item.closeGate}</td>
-                        <td>{item.screeningType}</td>
+                        {!isPreboardScope && (
+                          <td>
+                            <button
+                              type="button"
+                              className={`screening-type-trigger${flightScreeningSettings[key] ? ' has-value' : ''}`}
+                              onClick={() => openScreeningEditor(key)}
+                            >
+                              {getScreeningSummary(key, item.screeningType)}
+                            </button>
+                          </td>
+                        )}
                         <td>
                           <div className="door4-flight-officer-cell">
-                            <span>{officerText}</span>
-                            {!isCancelledFlight && <div className="door4-flight-officer-actions">
+                            {isPreboardScope && !isCancelledFlight ? (
+                              <div className="preboard-team-slot-row" aria-label="Drop up to five teams here">
+                                {Array.from({ length: PREBOARD_MAX_TEAMS_PER_FLIGHT }, (_, slotIndex) => {
+                                  const teamName = assignedTeams[slotIndex]
+                                  return teamName ? (
+                                    <span key={`${key}-${teamName}-${slotIndex}`} className="preboard-team-chip">{teamName}</span>
+                                  ) : (
+                                    <span key={`${key}-slot-${slotIndex}`} className="preboard-drop-target-label">DROP TEAM</span>
+                                  )
+                                })}
+                              </div>
+                            ) : (
+                              <span>{officerText}</span>
+                            )}
+                            {!isCancelledFlight && !isPreboardScope && <div className="door4-flight-officer-actions">
                               <button type="button" className="door4-beacon-toggle" onClick={() => toggleFlightBeaconDetected(key)}>
                                 <span className={`door4-flight-beacon-icon ${flightBeaconDetected[key] ? 'is-detected' : 'is-not-detected'}`} style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>Q</span>
                               </button>
@@ -1629,6 +1822,58 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                               )}
                             </div>}
                           </div>
+                        </td>
+                        {isPreboardScope && (
+                          <td>
+                            {getScreeningSummary(key, item.screeningType) !== 'Set screening' ? (
+                              <span className="preboard-row-screening-summary">{getScreeningSummary(key, item.screeningType)}</span>
+                            ) : (
+                              <span className="preboard-screening-empty">—</span>
+                            )}
+                          </td>
+                        )}
+                        {isPreboardScope && (
+                          <td>
+                            {!isCancelledFlight && (
+                              <div className="door4-flight-officer-actions preboard-flight-controls">
+                                <button type="button" className="door4-beacon-toggle" onClick={() => toggleFlightBeaconDetected(key)}>
+                                  <span className={`door4-flight-beacon-icon ${flightBeaconDetected[key] ? 'is-detected' : 'is-not-detected'}`} style={{ fontSize: 16, fontWeight: 800, lineHeight: 1 }}>Q</span>
+                                </button>
+                                <span className="badge badge-blue">AI</span>
+                                <span className="door4-pax-slot">
+                                  {shouldShowPaxBadge(item.status) && (
+                                    <>
+                                      <span className="door4-pax-gauge">
+                                        <ThumbsUp size={16} className={paxIconClass(pseudoRandomPaxPercent(key))} aria-hidden="true" />
+                                      </span>
+                                      <span className={`badge ${paxBadgeClass(pseudoRandomPaxPercent(key))}`}>{`PAX ${pseudoRandomPaxPercent(key)}%`}</span>
+                                    </>
+                                  )}
+                                  {!shouldShowPaxBadge(item.status) && (
+                                    <>
+                                      <span className="door4-pax-gauge door4-pax-gauge-placeholder">
+                                        <ThumbsUp size={16} aria-hidden="true" />
+                                      </span>
+                                      <span className="door4-pax-badge-placeholder" />
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        <td>
+                          {isCancelledFlight ? (
+                            <span className="close-gate-disabled">—</span>
+                          ) : (
+                            <button
+                              type="button"
+                              className={`close-gate-trigger${(closeGateAssignments[key] || []).length ? ' has-value' : ''}`}
+                              onClick={() => openCloseGateModal(key)}
+                            >
+                              {getCloseGateSummary(key, item.closeGate)}
+                            </button>
+                          )}
                         </td>
                         <td>
                           <input
@@ -1805,6 +2050,158 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
             <div className="toolbar-row">
               <button type="button" className="btn-secondary" onClick={() => setIsCreateTeamOpen(false)}>Cancel</button>
               <button type="button" onClick={submitCreateTeam} disabled={createTeamOfficerIds.length < 2}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isScreeningEditorOpen && (
+        <div className="door4-modal-backdrop screening-modal-backdrop" onClick={() => setIsScreeningEditorOpen(false)}>
+          <div className="door4-modal screening-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Screening Type</h3>
+            <label className="screening-flight-field">
+              Flight Number
+              <input
+                placeholder="Key in or select flight no."
+                value={screeningEditorFlightInput}
+                onChange={(e) => updateScreeningEditorFlightInput(e.target.value)}
+              />
+              <div className="screening-flight-picker">
+                {filteredScreeningFlightOptions.length === 0 ? (
+                  <div className="screening-flight-empty">No matching flight</div>
+                ) : (
+                  filteredScreeningFlightOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      className={screeningEditorFlightKey === option.key ? 'selected' : ''}
+                      onClick={() => {
+                        setScreeningEditorFlightKey(option.key)
+                        setScreeningEditorFlightInput(option.flight)
+                      }}
+                    >
+                      <strong>{option.flight}</strong>
+                      <span>{option.terminal} {option.gate}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+              {screeningEditorFlightKey && (
+                <span>
+                  {screeningFlightOptions.find((option) => option.key === screeningEditorFlightKey)?.label || 'Selected flight'}
+                </span>
+              )}
+              {!screeningEditorFlightKey && (
+                <span className="screening-flight-warning">Select or key in a valid flight number first.</span>
+              )}
+            </label>
+            <div className="screening-option-list">
+              {SCREENING_TYPE_OPTIONS.map((type) => {
+                const current = flightScreeningSettings[screeningEditorFlightKey] || { types: [], percentage: '' }
+                const selected = Array.isArray(current.types) && current.types.includes(type)
+                return (
+                  <label key={type} className="screening-option-row">
+                    <input
+                      type="checkbox"
+                      disabled={!screeningEditorFlightKey}
+                      checked={selected}
+                      onChange={(e) => updateScreeningType(screeningEditorFlightKey, type, e.target.checked)}
+                    />
+                    <span>{type}</span>
+                  </label>
+                )
+              })}
+            </div>
+            <label className="screening-percentage-field">
+              Percentage
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                placeholder="0"
+                disabled={!screeningEditorFlightKey}
+                value={flightScreeningSettings[screeningEditorFlightKey]?.percentage || ''}
+                onChange={(e) => updateScreeningPercentage(screeningEditorFlightKey, e.target.value)}
+              />
+            </label>
+            <div className="toolbar-row">
+              <button type="button" className="btn-secondary" onClick={() => clearScreeningSettings(screeningEditorFlightKey)} disabled={!screeningEditorFlightKey}>
+                Clear
+              </button>
+              <button type="button" onClick={() => setIsScreeningEditorOpen(false)} disabled={!screeningEditorFlightKey}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {closeGateEditorFlightKey && (
+        <div className="door4-modal-backdrop close-gate-modal-backdrop" onClick={() => setCloseGateEditorFlightKey('')}>
+          <div className="door4-modal close-gate-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Assign Officers or Teams for Close Gate</h3>
+            <fieldset className="close-gate-type-field">
+              <legend>Type</legend>
+              <label>
+                <input
+                  type="radio"
+                  name="close-gate-type"
+                  checked={closeGateDraftType === 'user'}
+                  onChange={() => {
+                    setCloseGateDraftType('user')
+                    setCloseGateDraftValue('')
+                  }}
+                />
+                User
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="close-gate-type"
+                  checked={closeGateDraftType === 'team'}
+                  onChange={() => {
+                    setCloseGateDraftType('team')
+                    setCloseGateDraftValue('')
+                  }}
+                />
+                Team
+              </label>
+            </fieldset>
+            <div className="close-gate-picker-row">
+              <input
+                type="text"
+                list={`close-gate-${closeGateDraftType}-options`}
+                placeholder={`Type ${closeGateDraftType === 'team' ? 'team' : 'officer'} name`}
+                value={closeGateDraftValue}
+                onChange={(e) => setCloseGateDraftValue(e.target.value)}
+              />
+              <datalist id={`close-gate-${closeGateDraftType}-options`}>
+                {(closeGateDraftType === 'team' ? preboardTeamCards : visibleAvailableOfficers).map((item) => {
+                  const value = closeGateDraftType === 'team' ? item.teamName : `${item.name} (${item.staff_id})`
+                  return <option key={`typed-${closeGateDraftType}-${value}`} value={value} />
+                })}
+              </datalist>
+              <button type="button" onClick={addCloseGateDraftAssignee} disabled={!closeGateDraftValue}>Add</button>
+            </div>
+            <div className="close-gate-assignee-list">
+              <span className="close-gate-list-label">Close Gate Assignee List</span>
+              {!(closeGateAssignments[closeGateEditorFlightKey] || []).length && <strong>No assignees</strong>}
+              {(closeGateAssignments[closeGateEditorFlightKey] || []).map((assignee) => (
+                <button
+                  key={`${assignee.type}-${assignee.id}`}
+                  type="button"
+                  className="close-gate-assignee-chip"
+                  onClick={() => removeCloseGateAssignee(closeGateEditorFlightKey, assignee)}
+                >
+                  <span>{assignee.label}</span>
+                  <small>{assignee.type === 'team' ? 'Team' : 'User'} ×</small>
+                </button>
+              ))}
+            </div>
+            <div className="close-gate-modal-actions">
+              <button type="button" className="btn-secondary" onClick={() => setCloseGateEditorFlightKey('')}>Cancel</button>
+              <button type="button" onClick={submitCloseGateAssignments}>Submit</button>
             </div>
           </div>
         </div>
