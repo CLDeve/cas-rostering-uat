@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getDoor4DepartureFlights, listEmployees } from '../api'
+import { getDoor4ArrivalFlights, listEmployees } from '../api'
 
 const DOOR4_PLAN_STORAGE_KEY = 'door4_flight_assignments_by_date'
 const DOOR4_PLAN_UPDATED_EVENT = 'door4-plan-updated'
@@ -58,12 +58,60 @@ function getFlightDateIso(row) {
 }
 
 function getFlightRowKey(row, index) {
+  const explicitId = getFlightValue(row, ['id', 'flight_id', 'flightId', 'leg_id', 'legId', 'movement_id', 'movementId'])
+  if (explicitId !== '—') {
+    return `id:${normalizeKeyToken(explicitId)}`
+  }
   const flight = getFlightValue(row, ['flightno', 'flight_no', 'flightNumber', 'flight'])
   const date = getFlightDateIso(row) || getFlightValue(row, ['scheduled_date', 'estimated_date', 'display_date', 'tixdate'])
-  const terminal = getFlightValue(row, ['display_terminal', 'terminal'])
-  const gate = getFlightValue(row, ['display_gate', 'current_gate', 'display_parkingstand', 'scheduled_gate'])
-  const scheduledTime = getFlightValue(row, ['scheduled_time', 'sch', 'std', 'scheduledTime'])
-  return `${flight}|${date}|${terminal}|${gate}|${scheduledTime}`
+  const terminal = terminalGroupForFlight(row) || 'T?'
+  const scheduledTime = formatCompactTime(getFlightValue(row, [
+    'scheduled_time',
+    'sch',
+    'sta',
+    'std',
+    'scheduledTime',
+    'scheduled_date',
+    'scheduled_arrival_date',
+    'scheduledArrivalDate',
+    'operationalTimes.scheduledGateArrival.dateLocal',
+    'scheduledArrivalTime',
+    'scheduled_arrival_time',
+    'scheduledDepartureTime',
+    'scheduledDeparture',
+    'operationalTimes.scheduledGateDeparture.dateLocal',
+  ]))
+  const eta = formatCompactTime(getFlightValue(row, [
+    'ext_display_time',
+    'display_time',
+    'estimated_time',
+    'eta',
+    'ata',
+    'estimatedTime',
+    'estimated_date',
+    'estimated_arrival_date',
+    'estimatedArrivalDate',
+    'operationalTimes.estimatedGateArrival.dateLocal',
+    'estimatedArrivalTime',
+    'estimated_arrival_time',
+    'estimatedDepartureTime',
+    'estimatedDeparture',
+    'etd',
+    'operationalTimes.estimatedGateDeparture.dateLocal',
+  ]))
+  const signature = [
+    normalizeKeyToken(flight),
+    normalizeKeyToken(terminal),
+    normalizeKeyToken(date),
+    normalizeKeyToken(scheduledTime),
+    normalizeKeyToken(eta),
+  ].join('|')
+  return `sig:${signature}|idx:${index}`
+}
+
+function normalizeKeyToken(value) {
+  const text = String(value || '').trim()
+  return text && text !== '—' ? text.toUpperCase() : '-'
 }
 
 function getFlightGate(row) {
@@ -151,6 +199,16 @@ function flightStatusTone(statusValue) {
   return 'gray'
 }
 
+function isAssignableFlight(row) {
+  const status = String(getFlightStatus(row) || '').toLowerCase()
+  const gate = getFlightGate(row)
+  return gate !== '—' && !status.includes('cancel') && !status.includes('divert')
+}
+
+function getOfficerTerminalGroup(officer) {
+  return terminalGroupFromTerminalValue(officer?.terminal)
+}
+
 export default function Door4OfficersPage() {
   const [status, setStatus] = useState('')
   const [rows, setRows] = useState([])
@@ -187,11 +245,12 @@ export default function Door4OfficersPage() {
   useEffect(() => {
     async function loadFlights() {
       try {
-        const payload = await getDoor4DepartureFlights(selectedDate)
+        const payload = await getDoor4ArrivalFlights(selectedDate)
         const items = getFlightRows(payload)
         setFlights(items)
-      } catch {
+      } catch (err) {
         setFlights([])
+        setStatus(`Unable to load Door 4 flights: ${err.message}`)
       }
     }
     loadFlights()
@@ -302,6 +361,54 @@ export default function Door4OfficersPage() {
     [rows],
   )
 
+  const generatedFlightAssignments = useMemo(() => {
+    if (!door4Rows.length || !flights.length) return {}
+    const assignments = {}
+    const assignedCounts = Object.fromEntries(door4Rows.map((officer) => [String(officer.id), 0]))
+    const flightItems = flights
+      .map((flight, index) => ({
+        flight,
+        index,
+        key: getFlightRowKey(flight, index),
+        terminal: terminalGroupForFlight(flight),
+        eta: formatCompactTime(getFlightValue(flight, [
+          'ext_display_time',
+          'display_time',
+          'estimated_time',
+          'eta',
+          'estimatedTime',
+          'estimatedDepartureTime',
+          'estimatedDeparture',
+          'etd',
+          'operationalTimes.estimatedGateDeparture.dateLocal',
+        ])),
+      }))
+      .filter(({ flight }) => isAssignableFlight(flight))
+      .sort((a, b) => a.eta.localeCompare(b.eta) || getFlightGate(a.flight).localeCompare(getFlightGate(b.flight)))
+      .slice(0, Math.max(door4Rows.length * 3, 60))
+
+    flightItems.forEach(({ key, terminal }) => {
+      const eligibleOfficers = door4Rows.filter((officer) => {
+        const officerTerminal = getOfficerTerminalGroup(officer)
+        return !terminal || !officerTerminal || officerTerminal === terminal
+      })
+      const selectedOfficer = [...(eligibleOfficers.length ? eligibleOfficers : door4Rows)].sort((a, b) => (
+        (assignedCounts[String(a.id)] || 0) - (assignedCounts[String(b.id)] || 0)
+        || String(a.name || '').localeCompare(String(b.name || ''))
+      ))[0]
+      if (!selectedOfficer) return
+      assignments[key] = String(selectedOfficer.id)
+      assignedCounts[String(selectedOfficer.id)] = (assignedCounts[String(selectedOfficer.id)] || 0) + 1
+    })
+
+    return assignments
+  }, [door4Rows, flights])
+
+  const displayFlightAssignments = useMemo(
+    () => (Object.keys(flightAssignments).length > 0 ? flightAssignments : generatedFlightAssignments),
+    [flightAssignments, generatedFlightAssignments],
+  )
+
   const assignmentsByOfficerId = useMemo(() => {
     const flightByKey = {}
     flights.forEach((flight, index) => {
@@ -310,7 +417,7 @@ export default function Door4OfficersPage() {
     })
 
     const map = {}
-    Object.entries(flightAssignments).forEach(([flightKey, officerId]) => {
+    Object.entries(displayFlightAssignments).forEach(([flightKey, officerId]) => {
       const flight = flightByKey[flightKey]
       if (!flight) return
       const id = String(officerId)
@@ -346,7 +453,7 @@ export default function Door4OfficersPage() {
       items.sort((a, b) => a.eta.localeCompare(b.eta))
     })
     return map
-  }, [flights, flightAssignments])
+  }, [flights, displayFlightAssignments])
 
   return (
     <section className="panel">

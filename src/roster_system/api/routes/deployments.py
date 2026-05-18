@@ -333,12 +333,13 @@ def _list_door_4_flights_impl(
     flightno: str | None = Query(default=None),
     movement_type: str = "departure",
 ) -> Any:
+    endpoint_url = settings.cas_flights_departure_url if movement_type == "departure" else settings.cas_flights_arrival_url
+    date_param = "tixdate" if movement_type == "departure" else "date"
     params = {
-        "tixdate": tixdate.isoformat(),
+        date_param: tixdate.isoformat(),
     }
     if (flightno or "").strip():
         params["flightno"] = (flightno or "").strip()
-    endpoint_url = settings.cas_flights_departure_url if movement_type == "departure" else settings.cas_flights_arrival_url
 
     response = None
     raw_body = ""

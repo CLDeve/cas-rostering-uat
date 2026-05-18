@@ -920,6 +920,7 @@ button:active,
 .door4-pool-header h3 {
   margin: 0;
   font-size: 18px;
+  color: #ffffff;
 }
 
 .door4-officer-search {
@@ -1233,6 +1234,153 @@ button:active,
   display: inline-flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.preboard-gate-cell {
+  min-width: 72px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(15 23 42 / .28);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.preboard-gate-cell small {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.preboard-gate-type-single { background: #a7f84f; color: #07110b; }
+.preboard-gate-type-bus { background: #fff200; color: #111100; }
+.preboard-gate-type-common { background: #00c8ff; color: #06131a; }
+.preboard-gate-type-mars { background: #ffffff; color: #111827; }
+.preboard-gate-type-pair { background: #ffbf00; color: #1c1200; }
+
+.preboard-flat-config {
+  padding: 18px;
+}
+
+.preboard-flat-config .muted {
+  color: #94a3b8;
+}
+
+.preboard-flat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.preboard-flat-header h2 {
+  margin: 0 0 2px;
+  font-size: 16px;
+}
+
+.preboard-config-actions,
+.preboard-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preboard-config-actions select,
+.preboard-add-row select,
+.preboard-add-row input {
+  height: 32px;
+}
+
+.preboard-add-row {
+  margin-bottom: 12px;
+}
+
+.preboard-config-table-wrap {
+  max-height: calc(100vh - 285px);
+  border-radius: var(--r-md);
+}
+
+.preboard-flat-config-table {
+  table-layout: fixed;
+}
+
+.preboard-flat-config-table th {
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: #94a3b8;
+}
+
+.preboard-flat-config-table td {
+  color: #e5e7eb;
+}
+
+.preboard-flat-config-table th:nth-child(1),
+.preboard-flat-config-table td:nth-child(1) {
+  width: 100px;
+}
+
+.preboard-flat-config-table th:nth-child(2),
+.preboard-flat-config-table td:nth-child(2) {
+  width: 120px;
+  font-weight: 800;
+}
+
+.preboard-flat-config-table th:nth-child(3),
+.preboard-flat-config-table td:nth-child(3) {
+  width: 210px;
+}
+
+.preboard-flat-config-table th:nth-child(4),
+.preboard-flat-config-table td:nth-child(4) {
+  width: 120px;
+}
+
+.preboard-type-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 118px;
+  height: 26px;
+  border: 1px solid rgb(15 23 42 / .25);
+  border-radius: 999px;
+  padding: 0 28px 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.preboard-type-picker span {
+  color: inherit;
+}
+
+.preboard-type-picker select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.preboard-type-picker::after {
+  content: '⌄';
+  position: absolute;
+  right: 10px;
+  top: 3px;
+  color: inherit;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.preboard-flat-config-table td:nth-child(3) {
+  text-align: left;
+}
+
+.preboard-flat-config-table .btn-secondary {
+  height: 30px;
+  padding: 0 12px;
 }
 
 .door4-gate-change {

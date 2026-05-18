@@ -11,9 +11,17 @@ import {
   replaceDeploymentAssignments,
 } from '../api'
 import SearchDropdown from '../components/SearchDropdown'
+import {
+  PREBOARD_GATE_TYPE_STORAGE_KEY,
+  findPreboardGateType,
+  getPreboardGateTypeClass,
+  readPreboardGateTypeRows,
+} from '../data/preboardGateTypes'
 
 const DEFAULT_SLOT_CAPACITY = 25
 const PREBOARD_MAX_TEAMS_PER_FLIGHT = 5
+const DOOR4_PLAN_STORAGE_KEY = 'door4_flight_assignments_by_date'
+const DOOR4_PLAN_UPDATED_EVENT = 'door4-plan-updated'
 const DEPLOYMENT_SCOPES = {
   all: { label: 'Deployment Board', aliases: [], locked: false },
   'door-4': { label: 'Door 4', aliases: ['door 4', 'door4'], locked: true },
@@ -37,6 +45,24 @@ function todaySgIso() {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date())
+}
+
+function normalizeIsoDate(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text
+  const slash = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (slash) return `${slash[3]}-${slash[2]}-${slash[1]}`
+  const dash = text.match(/^(\d{2})-(\d{2})-(\d{4})$/)
+  if (dash) return `${dash[3]}-${dash[2]}-${dash[1]}`
+  const parsed = new Date(text)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(parsed)
 }
 
 function getSgWeekdayCode(isoDate) {
@@ -475,6 +501,24 @@ function getFlightDisplay(row) {
   const officer = getFlightValue(row, ['officer', 'officerName', 'assignedOfficer', 'staffName', 'name'])
   const door = getFlightValue(row, ['door', 'doorNo', 'door_no', 'deploymentDoor', 'assignment'])
   const status = getFlightValue(row, ['flight_status', 'status', 'flightStatus', 'flightstatus', 'remarks'])
+  const closeGate = getFlightValue(row, [
+    'close_gate',
+    'closing_gate',
+    'closeGate',
+    'closingGate',
+    'gate_close',
+    'gateClose',
+    'close_gate_time',
+    'closing_gate_time',
+  ])
+  const screeningType = getFlightValue(row, [
+    'screening_type',
+    'screeningType',
+    'screen_type',
+    'screenType',
+    'security_screening_type',
+    'screening',
+  ])
 
   const normalizedTerminal = normalizeTerminalValue(terminal) || deriveTerminalFromGate(gate) || 'T?'
 
@@ -486,6 +530,8 @@ function getFlightDisplay(row) {
     scheduled: formatFlightTime(scheduled),
     officer: officer === '—' && door === '—' ? 'Unassigned' : `${officer}${door === '—' ? '' : ` • ${door}`}`,
     status: status === '—' ? 'Landed' : status,
+    closeGate,
+    screeningType,
   }
 }
 
@@ -537,16 +583,20 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   const [door4HiddenRevealCount, setDoor4HiddenRevealCount] = useState(0)
   const [agenticAiEnabled, setAgenticAiEnabled] = useState(false)
   const [flightAssignments, setFlightAssignments] = useState({})
+  const [door4PlanLoadedDate, setDoor4PlanLoadedDate] = useState('')
   const [flightBeaconDetected, setFlightBeaconDetected] = useState({})
   const [flightRemarks, setFlightRemarks] = useState({})
   const [flightGateChanges, setFlightGateChanges] = useState({})
   const [preboardManpowerView, setPreboardManpowerView] = useState('teams')
   const [preboardFlightTeams, setPreboardFlightTeams] = useState({})
+  const [preboardGateTypeRows, setPreboardGateTypeRows] = useState(() => readPreboardGateTypeRows())
   const [selectedPreboardTerminals, setSelectedPreboardTerminals] = useState(['T1', 'T2', 'T3', 'T4'])
   const [officerTeamOverrides, setOfficerTeamOverrides] = useState({})
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
   const [createTeamName, setCreateTeamName] = useState('')
   const [createTeamOfficerIds, setCreateTeamOfficerIds] = useState([])
+  const isDoor4Scope = routeScopeKey === 'door-4' || routeScopeKey === 'preboard'
+  const isPreboardScope = routeScopeKey === 'preboard'
 
   const activeSites = useMemo(
     () => filterSitesForDate(allSites, selectedDate),
@@ -601,14 +651,19 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   )
 
   async function loadAssignmentsForDate(dateIso, sites = allSites) {
+    const safeDateIso = normalizeIsoDate(dateIso)
+    if (!safeDateIso) {
+      setStatus(`Invalid date "${dateIso}". Use YYYY-MM-DD.`)
+      return
+    }
     const empty = buildEmptyAssignmentsBySite(sites)
     try {
-      const payload = await getDeploymentAssignments(dateIso)
+      const payload = await getDeploymentAssignments(safeDateIso)
       const merged = applyAssignmentRows(empty, payload.assignments)
       setAssignmentsBySite(merged)
       setOfficerToSite(buildOfficerToSiteIndex(merged))
       setDirty(false)
-      setStatus(`Showing deployment board for ${dateIso} (Singapore).`)
+      setStatus(`Showing deployment board for ${safeDateIso} (Singapore).`)
     } catch (err) {
       setAssignmentsBySite(empty)
       setOfficerToSite({})
@@ -618,13 +673,18 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
   }
 
   async function loadDoor4Flights() {
+    const safeDateIso = normalizeIsoDate(selectedDate)
+    if (!safeDateIso) {
+      setDoor4FlightStatus(`Invalid date "${selectedDate}". Use YYYY-MM-DD.`)
+      return
+    }
     setIsLoadingDoor4Flights(true)
     setDoor4FlightStatus('Loading Door 4 flights...')
     setDoor4HiddenRevealCount(0)
     try {
       const payload = routeScopeKey === 'door-4'
-        ? await getDoor4ArrivalFlights(selectedDate, door4FlightNo)
-        : await getDoor4DepartureFlights(selectedDate, door4FlightNo)
+        ? await getDoor4ArrivalFlights(safeDateIso, door4FlightNo)
+        : await getDoor4DepartureFlights(safeDateIso, door4FlightNo)
       const rows = getFlightRows(payload)
       const previousGateByKey = new Map(
         door4Flights.map((row, index) => [getFlightRowKey(row, index), getFlightDisplay(row).gate])
@@ -643,7 +703,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       setFlightGateChanges(nextGateChanges)
       const changedCount = Object.keys(nextGateChanges).length
       setDoor4FlightStatus(
-        `Loaded ${rows.length} Door 4 flight record${rows.length === 1 ? '' : 's'} for ${selectedDate}.${changedCount > 0 ? ` Gate changes detected: ${changedCount}.` : ''}`
+        `Loaded ${rows.length} Door 4 flight record${rows.length === 1 ? '' : 's'} for ${safeDateIso}.${changedCount > 0 ? ` Gate changes detected: ${changedCount}.` : ''}`
       )
     } catch (err) {
       setDoor4Flights([])
@@ -696,6 +756,51 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     if (routeScopeKey !== 'door-4' && routeScopeKey !== 'preboard') return
     loadDoor4Flights()
   }, [routeScopeKey, selectedDate])
+
+  useEffect(() => {
+    if (!isPreboardScope) return undefined
+    function loadGateTypes() {
+      setPreboardGateTypeRows(readPreboardGateTypeRows())
+    }
+    loadGateTypes()
+    function onStorage(event) {
+      if (event.key !== PREBOARD_GATE_TYPE_STORAGE_KEY) return
+      loadGateTypes()
+    }
+    window.addEventListener('storage', onStorage)
+    window.addEventListener('preboard-gate-types-updated', loadGateTypes)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener('preboard-gate-types-updated', loadGateTypes)
+    }
+  }, [isPreboardScope])
+
+  useEffect(() => {
+    if (!isDoor4Scope || isPreboardScope) return
+    try {
+      const raw = localStorage.getItem(DOOR4_PLAN_STORAGE_KEY)
+      const allPlans = raw ? JSON.parse(raw) : {}
+      const dayPlan = allPlans?.[selectedDate]
+      setFlightAssignments(dayPlan && typeof dayPlan === 'object' ? dayPlan : {})
+    } catch {
+      setFlightAssignments({})
+    } finally {
+      setDoor4PlanLoadedDate(selectedDate)
+    }
+  }, [isDoor4Scope, isPreboardScope, selectedDate])
+
+  useEffect(() => {
+    if (!isDoor4Scope || isPreboardScope || door4PlanLoadedDate !== selectedDate) return
+    try {
+      const raw = localStorage.getItem(DOOR4_PLAN_STORAGE_KEY)
+      const allPlans = raw ? JSON.parse(raw) : {}
+      const nextPlans = { ...(allPlans || {}), [selectedDate]: flightAssignments }
+      localStorage.setItem(DOOR4_PLAN_STORAGE_KEY, JSON.stringify(nextPlans))
+      window.dispatchEvent(new CustomEvent(DOOR4_PLAN_UPDATED_EVENT, { detail: { date: selectedDate } }))
+    } catch {
+      // ignore storage write failures
+    }
+  }, [flightAssignments, isDoor4Scope, isPreboardScope, selectedDate, door4PlanLoadedDate])
 
   function removeOfficerAssignment(officerId, assignments, officerIndex) {
     const previousSiteId = officerIndex[officerId]
@@ -947,8 +1052,6 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
     })
   }
 
-  const isDoor4Scope = routeScopeKey === 'door-4' || routeScopeKey === 'preboard'
-  const isPreboardScope = routeScopeKey === 'preboard'
   const getOfficerTeamName = (officer) => officerTeamOverrides[String(officer.id)] || officer.team || 'Unassigned Team'
   const availableOfficers = useMemo(
     () => allOfficers.filter((officer) => !officerToSite[String(officer.id)]),
@@ -1195,14 +1298,14 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
 
   return (
     <>
-      <section className="panel">
+      <section className={`panel${isPreboardScope ? ' preboard-sample-toolbar' : ''}`}>
         <div className="toolbar-row">
           <label>
             Deployment Date (SG)
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => setSelectedDate(normalizeIsoDate(e.target.value) || e.target.value)}
             />
           </label>
           <button type="button" className="btn-secondary" onClick={reloadAssignments}>
@@ -1264,8 +1367,8 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
       </section>
 
       {isDoor4Scope ? (
-        <section className="door4-workspace-grid">
-          <article className="panel door4-pool" onDragOver={allowDrop} onDrop={onDropToPool}>
+        <section className={`door4-workspace-grid${isPreboardScope ? ' preboard-sample-workspace' : ''}`}>
+          <article className={`panel door4-pool${isPreboardScope ? ' preboard-sample-pool' : ''}`} onDragOver={allowDrop} onDrop={onDropToPool}>
             <div className="door4-pool-sticky">
               <div className="door4-pool-header">
                 <h3>{isPreboardScope ? `${preboardManpowerView === 'teams' ? 'Teams' : 'Officers'} (${preboardManpowerView === 'teams' ? preboardTeamCards.length : visibleAvailableOfficers.length})` : (redCrossExpanded ? `Red Cross Officers (${redCrossOfficers.length})` : `Available Officers (${visibleAvailableOfficers.length})`)}</h3>
@@ -1374,7 +1477,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
             </div>
           </article>
 
-          <section className="panel door4-flight-board">
+          <section className={`panel door4-flight-board${isPreboardScope ? ' preboard-sample-board' : ''}`}>
             <div className="door4-board-header">
               <h2>{isPreboardScope ? 'Preboard Departure Flights' : 'Door 4 Arrival Flights'}</h2>
               <div className="door4-board-header-right">
@@ -1448,6 +1551,8 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     <th>STATUS</th>
                     <th>ETA</th>
                     <th>SCH</th>
+                    <th>CLOSE GATE</th>
+                    <th>SCREENING TYPE</th>
                     <th>OFFICER / DOOR</th>
                     <th>REMARKS</th>
                   </tr>
@@ -1457,7 +1562,7 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                     if (entry.type === 'date') {
                       return (
                         <tr key={entry.key} className="door4-flight-break-row">
-                          <td colSpan={8}>{entry.label}</td>
+                          <td colSpan={10}>{entry.label}</td>
                         </tr>
                       )
                     }
@@ -1472,12 +1577,14 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                       : isPreboardScope
                         ? (assignedTeams.length > 0 ? `Teams: ${assignedTeams.join(', ')}` : 'Drop team here')
                       : assignedOfficer ? `${assignedOfficer.name} (${assignedOfficer.staff_id})` : (item.officer === 'Unassigned' ? 'Drop officer here' : item.officer)
+                    const preboardGateType = isPreboardScope ? findPreboardGateType(preboardGateTypeRows, item.terminal, item.gate) : ''
                     return (
                       <tr key={key} onDragOver={allowDrop} onDrop={(e) => onDropToFlight(e, key)}>
                         <td>{item.terminal}</td>
                         <td>
-                          <div className="door4-gate-cell">
+                          <div className={`door4-gate-cell${preboardGateType ? ` preboard-gate-cell ${getPreboardGateTypeClass(preboardGateType)}` : ''}`}>
                             <span>{item.gate}</span>
+                            {preboardGateType && <small>{preboardGateType}</small>}
                             {flightGateChanges[key] && (
                               <span className="door4-gate-change">
                                 {flightGateChanges[key].previousGate} to {flightGateChanges[key].nextGate}
@@ -1489,6 +1596,8 @@ export default function DeploymentBoardPage({ scopeKeyOverride = '' }) {
                         <td><span className={`badge ${statusBadgeClass(item.status)}`}>{item.status}</span></td>
                         <td>{item.eta}</td>
                         <td>{item.scheduled}</td>
+                        <td>{item.closeGate}</td>
+                        <td>{item.screeningType}</td>
                         <td>
                           <div className="door4-flight-officer-cell">
                             <span>{officerText}</span>
